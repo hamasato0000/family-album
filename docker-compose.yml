@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    container_name: family-album-db
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - family_album_db_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  family_album_db_data:
