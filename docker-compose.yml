@@ -3,12 +3,27 @@ services:
     image: postgres:16
     container_name: family-album-db
     restart: unless-stopped
-    env_file: .env
+    environment:
+      - POSTGRES_USER=fa_user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=fa_db
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - family_album_db_data:/var/lib/postgresql/data
       - ./docker/init:/docker-entrypoint-initdb.d:ro
+  web:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    volumes:
+      - ./api:/app
+      - /app/node_modules
 
 volumes:
   family_album_db_data:
