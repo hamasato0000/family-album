@@ -13,6 +13,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 CREATE TYPE content_type AS ENUM ('image', 'video');
 CREATE TYPE user_role AS ENUM ('owner', 'admin', 'member');
 CREATE TYPE news_type AS ENUM ('upload', 'comment');
+CREATE TYPE upload_status AS ENUM ('pending', 'uploaded', 'failed', 'expired');
 
 -- ------------------------------------------------------------
 -- 性別
@@ -160,4 +161,21 @@ CREATE TABLE IF NOT EXISTS r_children (
   gender_id     BIGINT NOT NULL REFERENCES r_gender(gender_id),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ------------------------------------------------------------
+-- アップロードセッション
+-- ------------------------------------------------------------
+-- TODO: イベントの生成日時や生成者についてきちんと考える（今は生成日時はcreated_atで代用）
+-- NOTE: ステータスが変化をイベントと捉えステータス変化の度にレコードを作成するのもありかも（イミュータブルデータモデル）
+CREATE TABLE IF NOT EXISTS e_upload_sessions (
+  upload_session_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  object_key            TEXT UNIQUE NOT NULL,
+  upload_status         upload_status NOT NULL DEFAULT 'pending',
+  expected_content_type TEXT,
+  max_bytes             INTEGER,
+  presigned_url         TEXT NOT NULL,
+  expires_at            TIMESTAMPTZ NOT NULL,
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
