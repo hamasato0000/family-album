@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS r_children (
 -- TODO: イベントの生成日時や生成者についてきちんと考える（今は生成日時はcreated_atで代用）
 -- NOTE: ステータスが変化をイベントと捉えステータス変化の度にレコードを作成するのもありかも（イミュータブルデータモデル）
 CREATE TABLE IF NOT EXISTS e_upload_sessions (
-  upload_session_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  upload_session_id     BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   object_key            TEXT UNIQUE NOT NULL,
   upload_status         upload_status NOT NULL DEFAULT 'pending',
   expected_content_type TEXT,
