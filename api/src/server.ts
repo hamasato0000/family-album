@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const app = new Hono();
 const prisma = new PrismaClient();
@@ -30,9 +31,17 @@ app.get("/health/db", async (c) => {
 });
 
 app.post("/contents/generate-signed-url", async (c) => {
-    console.log(c);
-    const objectKey = "test.text"; // TODO: 適切なオブジェクトキーを設定
-    const mime = "text/plain"; // TODO: 適切なMIMEタイプを設定
+    console.log("Request context:", c);
+
+    // ユニークなオブジェクトキーを生成する
+    // まずはUUIDv4を使う
+    // キーの形式は "/{yyyy}/{mm}/{dd}/{uuidv4}.jpg"
+    const dateDir = new Date().toISOString().slice(0, 10).replaceAll("-", "/");
+    const objectKey = `/${dateDir}/${randomUUID()}.jpg`;
+
+    console.log("Generated object key:", objectKey);
+
+    const mime = "image/jpeg";
     const putObjectCommand = new PutObjectCommand({
         Bucket: process.env.S3_BUCKET!,
         Key: objectKey,
