@@ -37,7 +37,7 @@ app.post("/contents/generate-signed-url", async (c) => {
     // まずはUUIDv4を使う
     // キーの形式は "/{yyyy}/{mm}/{dd}/{uuidv4}.jpg"
     const dateDir = new Date().toISOString().slice(0, 10).replaceAll("-", "/");
-    const objectKey = `/${dateDir}/${randomUUID()}.jpg`;
+    const objectKey = `${dateDir}/${randomUUID()}.jpg`;
 
     console.log("Generated object key:", objectKey);
 
@@ -52,6 +52,19 @@ app.post("/contents/generate-signed-url", async (c) => {
     const uploadUrl = await getSignedUrl(s3, putObjectCommand, {
         expiresIn: 60, // 60秒
     });
+
+    const newUploadSession = await prisma.eUploadSessions.create({
+        data: {
+            objectKey: objectKey,
+            uploadStatus: "pending",
+            expectedContentType: mime,
+            maxBytes: 10 * 1024 * 1024, // 10MB
+            expiresAt: new Date(Date.now() + 60 * 1000), // 60秒後
+            presignedUrl: uploadUrl,
+        },
+    });
+
+    console.log("Created upload session:", newUploadSession);
 
     return c.json({ uploadUrl });
 });

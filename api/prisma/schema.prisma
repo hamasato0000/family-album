@@ -1,7 +1,3 @@
-// Prisma schema derived from existing Postgres schema defined in docker/init/01_schema.sql
-// NOTE: We will use "db" provider and shadow database approach later for migration diffing against manual SQL.
-// For now, models reflect current tables. ENUMs mapped. Relations explicit.
-
 generator client {
   provider = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
@@ -12,194 +8,230 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum content_type {
+// --- Enums ---
+enum ContentType {
   image
   video
+
+  @@map("content_type")
 }
 
-enum user_role {
+enum UserRole {
   owner
   admin
   member
+
+  @@map("user_role")
 }
 
-enum news_type {
+enum NewsType {
   upload
   comment
+
+  @@map("news_type")
 }
 
-enum upload_status {
+enum UploadStatus {
   pending
   uploaded
   failed
   expired
+
+  @@map("upload_status")
 }
 
-// Reference tables (r_ prefix) and event tables (e_ prefix)
-// Identity columns -> BigInt @id @default(autoincrement())
+// --- Models ---
+// モデル名を PascalCase、テーブル名を @@map で指定
+// フィールド名を camelCase、カラム名を @map で指定
+// リレーションフィールド名からプレフィックスを除去
 
-model r_gender {
-  gender_id   BigInt @id @default(autoincrement())
-  gender_name String @db.VarChar(10)
-  created_at  DateTime @default(now()) @db.Timestamptz
-  updated_at  DateTime @default(now()) @db.Timestamptz
+model RGender {
+  genderId   BigInt   @id @default(autoincrement()) @map("gender_id")
+  genderName String   @db.VarChar(10) @map("gender_name")
+  createdAt  DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt  DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  // children
-  r_children r_children[]
+  children RChildren[] @relation("GenderChildren")
+
+  @@map("r_gender")
 }
 
-model r_users {
-  user_id      BigInt @id @default(autoincrement())
-  idp_user_id  String @unique
-  email        String @unique @db.Citext
-  display_name String
-  created_at   DateTime @default(now()) @db.Timestamptz
-  updated_at   DateTime @default(now()) @db.Timestamptz
+model RUsers {
+  userId      BigInt   @id @default(autoincrement()) @map("user_id")
+  idpUserId   String   @unique @map("idp_user_id")
+  email       String   @unique @db.Citext
+  displayName String   @map("display_name")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt   DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  // relations
-  r_users_albums r_users_albums[]
-  e_uploads      e_uploads[] @relation("userUploads")
-  e_comments     e_comments[] @relation("authorComments")
+  usersAlbums RUsersAlbums[] @relation("UserAlbums")
+  uploads     EUploads[]     @relation("UserUploads")
+  comments    EComments[]    @relation("AuthorComments")
+
+  @@map("r_users")
 }
 
-model r_albums {
-  album_id   BigInt @id @default(autoincrement())
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @db.Timestamptz
+model RAlbums {
+  albumId   BigInt   @id @default(autoincrement()) @map("album_id")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_users_albums r_users_albums[]
-  e_news         e_news[]
-  r_children     r_children[]
-  r_contents     r_contents[]
+  usersAlbums RUsersAlbums[] @relation("AlbumUsers")
+  news        ENews[]
+  children    RChildren[]
+  contents    RContents[]
+
+  @@map("r_albums")
 }
 
-model r_child_relations {
-  child_relation_id BigInt @id @default(autoincrement())
-  relation_name     String @db.VarChar(20)
-  created_at        DateTime @default(now()) @db.Timestamptz
-  updated_at        DateTime @default(now()) @db.Timestamptz
-  // NOTE: In SQL design r_users_albums stores child_relation as plain text; we keep table for master data only.
+model RChildRelations {
+  childRelationId BigInt   @id @default(autoincrement()) @map("child_relation_id")
+  relationName    String   @db.VarChar(20) @map("relation_name")
+  createdAt       DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt       DateTime @default(now()) @db.Timestamptz @map("updated_at")
+
+  @@map("r_child_relations")
 }
 
-model r_users_albums {
-  user_album_id  BigInt @id @default(autoincrement())
-  user_id        BigInt
-  album_id       BigInt
-  role           user_role @default(member)
-  child_relation String @db.VarChar(20)
-  nickname       String @db.VarChar(50)
-  joined_at      DateTime @default(now()) @db.Timestamptz
-  created_at     DateTime @default(now()) @db.Timestamptz
-  updated_at     DateTime @default(now()) @db.Timestamptz
+model RUsersAlbums {
+  userAlbumId   BigInt   @id @default(autoincrement()) @map("user_album_id")
+  userId        BigInt   @map("user_id")
+  albumId       BigInt   @map("album_id")
+  role          UserRole @default(member)
+  childRelation String   @db.VarChar(20) @map("child_relation")
+  nickname      String   @db.VarChar(50)
+  joinedAt      DateTime @default(now()) @db.Timestamptz @map("joined_at")
+  createdAt     DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt     DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_users  r_users  @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
-  r_albums r_albums @relation(fields: [album_id], references: [album_id], onDelete: Cascade)
+  user  RUsers  @relation("UserAlbums", fields: [userId], references: [userId], onDelete: Cascade)
+  album RAlbums @relation("AlbumUsers", fields: [albumId], references: [albumId], onDelete: Cascade)
 
-  @@unique([user_id, album_id], map: "idx_users_albums_user_album")
+  @@unique([userId, albumId], map: "idx_users_albums_user_album")
+  @@map("r_users_albums")
 }
 
-model e_news {
-  news_id    BigInt @id @default(autoincrement())
-  album_id   BigInt
-  news_type  news_type
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @db.Timestamptz
+model ENews {
+  newsId    BigInt   @id @default(autoincrement()) @map("news_id")
+  albumId   BigInt   @map("album_id")
+  newsType  NewsType @map("news_type") // Enum名を修正
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_albums r_albums @relation(fields: [album_id], references: [album_id])
-  e_uploads  e_uploads?
-  e_comments e_comments?
+  album RAlbums @relation(fields: [albumId], references: [albumId])
+
+  upload  EUploads?  @relation("NewsUpload")
+  comment EComments? @relation("NewsComment")
+
+  @@map("e_news")
 }
 
-model e_uploads {
-  upload_id    BigInt @id // references e_news(news_id) 1:1 share PK
-  uploader_id  BigInt
-  photo_count  BigInt @default(0)
-  video_count  BigInt @default(0)
-  created_at   DateTime @default(now()) @db.Timestamptz
-  updated_at   DateTime @default(now()) @db.Timestamptz
+model EUploads {
+  uploadId    BigInt   @id @map("upload_id") // 1:1関係 (ENewsのPKを共有)
+  uploaderId  BigInt   @map("uploader_id")
+  photoCount  BigInt   @default(0) @map("photo_count")
+  videoCount  BigInt   @default(0) @map("video_count")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt   DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  e_news   e_news   @relation(fields: [upload_id], references: [news_id], onDelete: Cascade)
-  r_users  r_users  @relation("userUploads", fields: [uploader_id], references: [user_id])
-  r_contents r_contents[]
+  news      ENews     @relation("NewsUpload", fields: [uploadId], references: [newsId], onDelete: Cascade)
+  uploader  RUsers    @relation("UserUploads", fields: [uploaderId], references: [userId])
+  contents  RContents[]
+
+  @@map("e_uploads")
 }
 
-model r_contents {
-  content_id    BigInt @id @default(autoincrement())
-  album_id      BigInt
-  upload_id     BigInt
-  content_type  content_type
-  content_hash  String @unique @db.Char(64)
-  uri           String? @unique
-  storage_key   String @unique
+model RContents {
+  contentId     BigInt      @id @default(autoincrement()) @map("content_id")
+  albumId       BigInt      @map("album_id")
+  uploadId      BigInt      @map("upload_id")
+  contentType   ContentType @map("content_type")
+  contentHash   String      @unique @db.Char(64) @map("content_hash")
+  uri           String?     @unique
+  storageKey    String      @unique @map("storage_key")
   caption       String?
-  taken_at      DateTime? @db.Timestamptz
-  created_at    DateTime @default(now()) @db.Timestamptz
-  updated_at    DateTime @default(now()) @db.Timestamptz
+  takenAt       DateTime?   @db.Timestamptz @map("taken_at")
+  createdAt     DateTime    @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt     DateTime    @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_albums  r_albums  @relation(fields: [album_id], references: [album_id])
-  e_uploads e_uploads @relation(fields: [upload_id], references: [upload_id])
-  r_photos  r_photos?
-  r_videos  r_videos?
-  e_comments e_comments[]
+  album    RAlbums   @relation(fields: [albumId], references: [albumId])
+  upload   EUploads  @relation(fields: [uploadId], references: [uploadId])
+  photo    RPhotos?
+  video    RVideos?
+  comments EComments[]
+
+  @@map("r_contents")
 }
 
-model r_photos {
-  photo_id   BigInt @id // references r_contents(content_id)
-  width      BigInt
-  height     BigInt
-  exif       Json?
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @db.Timestamptz
+model RPhotos {
+  photoId   BigInt   @id @map("photo_id") // 1:1関係 (RContentsのPKを共有)
+  width     BigInt
+  height    BigInt
+  exif      Json?
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_contents r_contents @relation(fields: [photo_id], references: [content_id], onDelete: Cascade)
+  // リレーションフィールド名変更
+  content RContents @relation(fields: [photoId], references: [contentId], onDelete: Cascade)
+
+  @@map("r_photos")
 }
 
-model r_videos {
-  video_id   BigInt @id // references r_contents(content_id)
-  duration_seconds BigInt
-  metadata   Json?
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @db.Timestamptz
+model RVideos {
+  videoId         BigInt   @id @map("video_id") // 1:1関係 (RContentsのPKを共有)
+  durationSeconds BigInt   @map("duration_seconds")
+  metadata        Json?
+  createdAt       DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt       DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_contents r_contents @relation(fields: [video_id], references: [content_id], onDelete: Cascade)
+  // リレーションフィールド名変更
+  content RContents @relation(fields: [videoId], references: [contentId], onDelete: Cascade)
+
+  @@map("r_videos")
 }
 
-model e_comments {
-  comment_id  BigInt @id // references e_news(news_id)
-  content_id  BigInt
-  author_id   BigInt?
-  body        String
-  posted_at   DateTime @default(now()) @db.Timestamptz
-  edited_at   DateTime @default(now()) @db.Timestamptz
-  created_at  DateTime @default(now()) @db.Timestamptz
-  updated_at  DateTime @default(now()) @db.Timestamptz
+model EComments {
+  commentId BigInt   @id @map("comment_id") // 1:1関係 (ENewsのPKを共有)
+  contentId BigInt   @map("content_id")
+  authorId  BigInt?  @map("author_id")
+  body      String
+  postedAt  DateTime @default(now()) @db.Timestamptz @map("posted_at")
+  editedAt  DateTime @default(now()) @db.Timestamptz @map("edited_at")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
 
-  e_news     e_news     @relation(fields: [comment_id], references: [news_id], onDelete: Cascade)
-  r_contents r_contents @relation(fields: [content_id], references: [content_id], onDelete: Cascade)
-  r_users    r_users?   @relation("authorComments", fields: [author_id], references: [user_id], onDelete: SetNull)
+  news    ENews     @relation("NewsComment", fields: [commentId], references: [newsId], onDelete: Cascade)
+  content RContents @relation(fields: [contentId], references: [contentId], onDelete: Cascade)
+  author  RUsers?   @relation("AuthorComments", fields: [authorId], references: [userId], onDelete: SetNull)
+
+  @@map("e_comments")
 }
 
-model r_children {
-  child_id   BigInt @id @default(autoincrement())
-  album_id   BigInt
-  name       String
-  birthday   DateTime? @db.Date
-  gender_id  BigInt
-  created_at DateTime @default(now()) @db.Timestamptz
-  updated_at DateTime @default(now()) @db.Timestamptz
+model RChildren {
+  childId   BigInt    @id @default(autoincrement()) @map("child_id")
+  albumId   BigInt    @map("album_id")
+  name      String
+  birthday  DateTime? @db.Date
+  genderId  BigInt    @map("gender_id")
+  createdAt DateTime  @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime  @default(now()) @db.Timestamptz @map("updated_at")
 
-  r_albums r_albums @relation(fields: [album_id], references: [album_id])
-  r_gender r_gender @relation(fields: [gender_id], references: [gender_id])
+  album  RAlbums @relation(fields: [albumId], references: [albumId])
+  gender RGender @relation("GenderChildren", fields: [genderId], references: [genderId])
+
+  @@map("r_children")
 }
 
-model e_upload_sessions {
-  upload_session_id BigInt @id @default(autoincrement())
-  object_key        String @unique
-  upload_status     upload_status @default(pending)
-  expected_content_type String?
-  max_bytes         Int?
-  presigned_url     String
-  expires_at        DateTime @db.Timestamptz
-  created_at        DateTime @default(now()) @db.Timestamptz
-  updated_at        DateTime @default(now()) @db.Timestamptz
+model EUploadSessions {
+  uploadSessionId     BigInt   @id @default(autoincrement()) @map("upload_session_id")
+  objectKey           String   @unique @map("object_key")
+  uploadStatus        UploadStatus @default(pending) @map("upload_status")
+  expectedContentType String?  @map("expected_content_type")
+  maxBytes            Int?     @map("max_bytes")
+  presignedUrl        String   @map("presigned_url")
+  expiresAt           DateTime @db.Timestamptz @map("expires_at")
+  createdAt           DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt           DateTime @default(now()) @db.Timestamptz @map("updated_at")
+
+  @@map("e_upload_sessions")
 }
