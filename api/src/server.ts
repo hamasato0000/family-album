@@ -30,6 +30,9 @@ app.get("/health/db", async (c) => {
     }
 });
 
+/*
+ * アップロード用の署名付きURLを生成する
+ */
 app.post("/contents/generate-signed-url", async (c) => {
     console.log("Request context:", c);
 
