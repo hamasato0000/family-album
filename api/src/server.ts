@@ -4,7 +4,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
-import { isAllowedImageContentType } from "./uploadConstants.js";
+import { zValidator } from "@hono/zod-validator";
+import { generateSignedUrlRequestSchema } from "./schemas.js";
 
 const app = new Hono();
 const prisma = new PrismaClient();
@@ -34,60 +35,52 @@ app.get("/health/db", async (c) => {
 /*
  * アップロード用の署名付きURLを生成する
  */
-app.post("/contents/generate-signed-url", async (c) => {
-    console.log("Request context:", c);
+app.post(
+    "/contents/generate-signed-url",
+    zValidator("json", generateSignedUrlRequestSchema),
+    async (c) => {
+        console.log("Request context:", c);
 
-    let contentType: string;
+        const contentType = c.req.valid("json").contentType;
 
-    try {
-        const body = await c.req.json();
-        contentType = body.contentType;
-    } catch (e) {
-        return c.json(
-            { error: "Invalid request body. Must be a valid JSON." },
-            400
-        );
+        // ユニークなオブジェクトキーを生成する
+        // まずはUUIDv4を使う
+        // キーの形式は "/{yyyy}/{mm}/{dd}/{uuidv4}.jpg"
+        const dateDir = new Date()
+            .toISOString()
+            .slice(0, 10)
+            .replaceAll("-", "/");
+        const objectKey = `${dateDir}/${randomUUID()}.jpg`;
+
+        console.log("Generated object key:", objectKey);
+
+        const putObjectCommand = new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET!,
+            Key: objectKey,
+            ContentType: contentType,
+        });
+
+        // アップロード用の署名付きURLを生成
+        const uploadUrl = await getSignedUrl(s3, putObjectCommand, {
+            expiresIn: 60, // TODO: マジックナンバーを廃止
+        });
+
+        const newUploadSession = await prisma.eUploadSessions.create({
+            data: {
+                objectKey: objectKey,
+                uploadStatus: "pending",
+                expectedContentType: contentType,
+                maxBytes: 10 * 1024 * 1024, // TODO: マジックナンバーを廃止
+                expiresAt: new Date(Date.now() + 60 * 1000), // TODO: マジックナンバーを廃止
+                presignedUrl: uploadUrl,
+            },
+        });
+
+        console.log("Created upload session:", newUploadSession);
+
+        return c.json({ uploadUrl });
     }
-
-    if (!isAllowedImageContentType(contentType)) {
-        return c.json({ error: "Invalid content type." }, 400);
-    }
-
-    // ユニークなオブジェクトキーを生成する
-    // まずはUUIDv4を使う
-    // キーの形式は "/{yyyy}/{mm}/{dd}/{uuidv4}.jpg"
-    const dateDir = new Date().toISOString().slice(0, 10).replaceAll("-", "/");
-    const objectKey = `${dateDir}/${randomUUID()}.jpg`;
-
-    console.log("Generated object key:", objectKey);
-
-    const mime = "image/jpeg";
-    const putObjectCommand = new PutObjectCommand({
-        Bucket: process.env.S3_BUCKET!,
-        Key: objectKey,
-        ContentType: mime,
-    });
-
-    // アップロード用の署名付きURLを生成
-    const uploadUrl = await getSignedUrl(s3, putObjectCommand, {
-        expiresIn: 60, // TODO: マジックナンバーを廃止
-    });
-
-    const newUploadSession = await prisma.eUploadSessions.create({
-        data: {
-            objectKey: objectKey,
-            uploadStatus: "pending",
-            expectedContentType: contentType,
-            maxBytes: 10 * 1024 * 1024, // TODO: マジックナンバーを廃止
-            expiresAt: new Date(Date.now() + 60 * 1000), // TODO: マジックナンバーを廃止
-            presignedUrl: uploadUrl,
-        },
-    });
-
-    console.log("Created upload session:", newUploadSession);
-
-    return c.json({ uploadUrl });
-});
+);
 
 const port = Number(process.env.PORT ?? 3000);
 console.log(`Listening on http://localhost:${port}`);
