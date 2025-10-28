@@ -4,6 +4,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { isAllowedImageContentType } from "./uploadConstants.js";
 
 const app = new Hono();
 const prisma = new PrismaClient();
@@ -36,6 +37,22 @@ app.get("/health/db", async (c) => {
 app.post("/contents/generate-signed-url", async (c) => {
     console.log("Request context:", c);
 
+    let contentType: string;
+
+    try {
+        const body = await c.req.json();
+        contentType = body.contentType;
+    } catch (e) {
+        return c.json(
+            { error: "Invalid request body. Must be a valid JSON." },
+            400
+        );
+    }
+
+    if (!isAllowedImageContentType(contentType)) {
+        return c.json({ error: "Invalid content type." }, 400);
+    }
+
     // ユニークなオブジェクトキーを生成する
     // まずはUUIDv4を使う
     // キーの形式は "/{yyyy}/{mm}/{dd}/{uuidv4}.jpg"
@@ -53,16 +70,16 @@ app.post("/contents/generate-signed-url", async (c) => {
 
     // アップロード用の署名付きURLを生成
     const uploadUrl = await getSignedUrl(s3, putObjectCommand, {
-        expiresIn: 60, // 60秒
+        expiresIn: 60, // TODO: マジックナンバーを廃止
     });
 
     const newUploadSession = await prisma.eUploadSessions.create({
         data: {
             objectKey: objectKey,
             uploadStatus: "pending",
-            expectedContentType: mime,
-            maxBytes: 10 * 1024 * 1024, // 10MB
-            expiresAt: new Date(Date.now() + 60 * 1000), // 60秒後
+            expectedContentType: contentType,
+            maxBytes: 10 * 1024 * 1024, // TODO: マジックナンバーを廃止
+            expiresAt: new Date(Date.now() + 60 * 1000), // TODO: マジックナンバーを廃止
             presignedUrl: uploadUrl,
         },
     });
