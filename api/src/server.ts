@@ -6,6 +6,11 @@ import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { zValidator } from "@hono/zod-validator";
 import { generateSignedUrlRequestSchema } from "./schemas.js";
+import {
+    MAX_UPLOAD_BYTES,
+    PRESIGNED_URL_EXPIRES_SECONDS,
+    getExtensionFromContentType,
+} from "./uploadConstants.js";
 
 const app = new Hono();
 const prisma = new PrismaClient();
@@ -50,7 +55,18 @@ app.post(
             .toISOString()
             .slice(0, 10)
             .replaceAll("-", "/");
-        const objectKey = `${dateDir}/${randomUUID()}.jpg`;
+
+        // Content-Typeから拡張子を決定する
+        // NOTE: ここはスキーマでバリデーション済みなので必ず取得できるはず
+        const extension = getExtensionFromContentType(contentType);
+        if (!extension) {
+            return c.json(
+                { message: "Unsupported content type for extension mapping" },
+                400
+            );
+        }
+
+        const objectKey = `${dateDir}/${randomUUID()}.${extension}`;
 
         console.log("Generated object key:", objectKey);
 
@@ -70,8 +86,10 @@ app.post(
                 objectKey: objectKey,
                 uploadStatus: "pending",
                 expectedContentType: contentType,
-                maxBytes: 10 * 1024 * 1024, // TODO: マジックナンバーを廃止
-                expiresAt: new Date(Date.now() + 60 * 1000), // TODO: マジックナンバーを廃止
+                maxBytes: MAX_UPLOAD_BYTES,
+                expiresAt: new Date(
+                    Date.now() + PRESIGNED_URL_EXPIRES_SECONDS * 1000
+                ),
                 presignedUrl: uploadUrl,
             },
         });
