@@ -1,0 +1,21 @@
+{
+  "name": "family-album",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamasato0000/family-album.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hamasato0000/family-album/issues"
+  },
+  "homepage": "https://github.com/hamasato0000/family-album#readme"
+}
