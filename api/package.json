@@ -1,5 +1,6 @@
 {
-  "name": "api",
+  "name": "@family-album/api",
+  "private": true,
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -8,7 +9,7 @@
     "start": "node dist/server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "hamasato0000",
   "license": "ISC",
   "description": "",
   "type": "module",
