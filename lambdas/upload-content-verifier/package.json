@@ -4,5 +4,11 @@
   "description": "",
   "license": "ISC",
   "author": "hamasato0000",
-  "main": "index.js"
+  "main": "index.js",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.157"
+  },
+  "scripts": {
+    "dev": "tsx src/local-invoke.ts"
+  }
 }
