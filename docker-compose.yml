@@ -14,8 +14,8 @@ services:
       - ./docker/init:/docker-entrypoint-initdb.d:ro
   web:
     build:
-      context: ./api
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./api/Dockerfile.dev
     ports:
       - "3000:3000"
     env_file:
@@ -27,8 +27,9 @@ services:
       - NODE_ENV=development
       - PORT=3000
     volumes:
-      - ./api:/app
-      - /app/node_modules
+      - .:/app
+      - /app/node_modules # bind mountによる上書きから除外
+      - /app/api/node_modules # bind mountによる上書きから除外
 
 volumes:
   family_album_db_data:
