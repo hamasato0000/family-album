@@ -1,14 +1,19 @@
-# 開発: TypeScript をそのまま tsx で実行 & 監視
 FROM node:22-alpine
 
+# 1. 作業ディレクトリ設定
 WORKDIR /app
 
+# 2. 依存関係の設定ファイルのコピーとインストール
 # 依存関係だけ先にコピーしてキャッシュを効かせる
 COPY package*.json ./
-RUN npm ci
+COPY api/package*.json ./api/
 
-# 残りをコピー
+# apiの依存関係をインストール（ワークスペースルートも含む）
+RUN npm ci --workspace=api --include-workspace-root
+
+# 3. 残りのファイルをコピー
 COPY . .
 
+# 4. 開発サーバー起動
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev:api"]

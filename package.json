@@ -1,0 +1,30 @@
+{
+  "name": "family-album",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamasato0000/family-album.git"
+  },
+  "keywords": [],
+  "author": "hamasato0000",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hamasato0000/family-album/issues"
+  },
+  "workspaces": [
+    "api",
+    "lambdas/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @family-album/api"
+  },
+  "homepage": "https://github.com/hamasato0000/family-album#readme",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "prisma": "^6.19.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

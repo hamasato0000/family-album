@@ -1,0 +1,8 @@
+{
+  "name": "@family-album/upload-content-verifier",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "hamasato0000",
+  "main": "index.js"
+}
