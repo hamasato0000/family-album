@@ -1,5 +1,10 @@
 import { handler } from "./handler";
-import type { S3Event, Context } from "aws-lambda";
+import type { S3Event } from "aws-lambda";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const S3_BUCKET = process.env.S3_BUCKET || "hogehoge-bucket";
 
 const s3Event: S3Event = {
     Records: [
@@ -24,11 +29,11 @@ const s3Event: S3Event = {
                 s3SchemaVersion: "1.0",
                 configurationId: "PutObjectEvent",
                 bucket: {
-                    name: "hogehoge-bucket",
+                    name: S3_BUCKET,
                     ownerIdentity: {
                         principalId: "A2992W3C838OHB",
                     },
-                    arn: "arn:aws:s3:::hogehoge-bucket",
+                    arn: `arn:aws:s3:::${S3_BUCKET}`,
                 },
                 object: {
                     key: "2025/10/31/dd8b0044-4aee-4743-b1e4-fe31916d2dcf.jpg",

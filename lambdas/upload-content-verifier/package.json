@@ -10,5 +10,8 @@
   },
   "scripts": {
     "dev": "tsx src/local-invoke.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }
