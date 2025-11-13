@@ -2,6 +2,7 @@ import type { S3Event, Context } from "aws-lambda";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 import dotenv from "dotenv";
+import { fileTypeFromBuffer } from "file-type";
 
 dotenv.config();
 
@@ -47,6 +48,11 @@ export const handler = async (event: S3Event): Promise<void> => {
             console.log(
                 `Fetched object of size ${imageBuffer.length} bytes from S3`
             );
+
+            // ファイルタイプを検出
+            const fileType = await fileTypeFromBuffer(imageBuffer);
+
+            console.log(fileType);
         } catch (error: any) {
             if (error?.$metadata?.httpStatusCode === 404) {
                 console.error(
