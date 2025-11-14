@@ -49,10 +49,25 @@ export const handler = async (event: S3Event): Promise<void> => {
                 `Fetched object of size ${imageBuffer.length} bytes from S3`
             );
 
+            // 許容するファイルタイプのリストを定義
+            const ALLOWED_FILE_TYPES = new Set(["jpg", "png", "heic", "heif"]);
+
             // ファイルタイプを検出
             const fileType = await fileTypeFromBuffer(imageBuffer);
+            if (!fileType) {
+                console.error(`Could not determine file type for ${objectKey}`);
+                continue;
+            }
 
-            console.log(fileType);
+            const { ext, mime } = fileType;
+            console.log(`Detected file type: ${ext}, MIME type: ${mime}`);
+
+            // 検出したファイルタイプが許容リストに含まれているか確認
+            if (!ALLOWED_FILE_TYPES.has(ext.toLowerCase())) {
+                console.error(
+                    `Invalid file type: ${ext} for file ${objectKey}`
+                );
+            }
         } catch (error: any) {
             if (error?.$metadata?.httpStatusCode === 404) {
                 console.error(
