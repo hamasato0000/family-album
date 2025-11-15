@@ -75,6 +75,26 @@ export const handler = async (event: S3Event): Promise<void> => {
                 continue;
             }
 
+            // 拡張子の正規化
+            const lastDotPosition = objectKey.lastIndexOf(".");
+            console.log("Last dot position:", lastDotPosition);
+
+            let normalizedObjectKey = null;
+
+            if (
+                lastDotPosition === -1 ||
+                objectKey.slice(lastDotPosition + 1).includes("/")
+            ) {
+                normalizedObjectKey = `${objectKey}.${ext}`;
+            } else {
+                normalizedObjectKey = `${objectKey.slice(
+                    0,
+                    lastDotPosition + 1
+                )}${ext}`;
+            }
+
+            console.log("Normalized object key:", normalizedObjectKey);
+
             // 検証済みコンテンツをS3の別オブジェクトとしてコピー
             // TODO: contentTypeも正す
             const copySource = `${bucketName}/${encodeURIComponent(objectKey)}`;
