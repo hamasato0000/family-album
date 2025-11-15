@@ -1,5 +1,10 @@
 import type { S3Event, Context } from "aws-lambda";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
+import {
+    S3Client,
+    GetObjectCommand,
+    type CopyObjectCommandInput,
+    CopyObjectCommand,
+} from "@aws-sdk/client-s3";
 import { Readable } from "stream";
 import dotenv from "dotenv";
 import { fileTypeFromBuffer } from "file-type";
@@ -31,10 +36,10 @@ export const handler = async (event: S3Event): Promise<void> => {
         });
 
         try {
-            const response = await s3.send(getObjectCommand);
+            const getObjectCommandResponse = await s3.send(getObjectCommand);
 
             // S3から取得したデータをストリームとして扱う
-            const stream = response.Body as Readable;
+            const stream = getObjectCommandResponse.Body as Readable;
 
             // S3から受け取ったデータチャンクをバイナリとして保持する配列
             const chunks: Uint8Array[] = [];
@@ -68,6 +73,20 @@ export const handler = async (event: S3Event): Promise<void> => {
                     `Invalid file type: ${ext} for file ${objectKey}`
                 );
             }
+
+            // 検証済みコンテンツをS3の別オブジェクトとしてコピー
+            // TODO: contentTypeも正す
+            const copySource = `${bucketName}/${encodeURIComponent(objectKey)}`;
+            const copyObjectCommandInput: CopyObjectCommandInput = {
+                Bucket: bucketName,
+                CopySource: copySource,
+                Key: `verified/${objectKey}`,
+                MetadataDirective: "COPY",
+            };
+
+            const copyObjectCommandResponse = await s3.send(
+                new CopyObjectCommand(copyObjectCommandInput)
+            );
         } catch (error: any) {
             if (error?.$metadata?.httpStatusCode === 404) {
                 console.error(
