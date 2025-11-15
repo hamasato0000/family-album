@@ -72,6 +72,7 @@ export const handler = async (event: S3Event): Promise<void> => {
                 console.error(
                     `Invalid file type: ${ext} for file ${objectKey}`
                 );
+                continue;
             }
 
             // 検証済みコンテンツをS3の別オブジェクトとしてコピー
