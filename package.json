@@ -16,7 +16,8 @@
   },
   "workspaces": [
     "api",
-    "lambdas/*"
+    "lambdas/*",
+    "common/*"
   ],
   "scripts": {
     "dev:api": "npm run dev -w @family-album/api",
