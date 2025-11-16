@@ -1,0 +1,11 @@
+{
+  "name": "@family-album/prisma",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {},
+  "keywords": [],
+  "author": "hamasato0000",
+  "license": "ISC",
+  "description": ""
+}
