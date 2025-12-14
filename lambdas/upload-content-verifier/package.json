@@ -15,6 +15,6 @@
   "dependencies": {
     "dotenv": "^17.2.3",
     "file-type": "^20.5.0",
-    "@family-album/prisma": "workspace:*"
+    "@family-album/prisma": "1.0.0"
   }
 }

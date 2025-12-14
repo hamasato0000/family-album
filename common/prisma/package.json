@@ -1,8 +1,8 @@
 {
   "name": "@family-album/prisma",
   "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
+  "main": "src/index.ts",
+  "type": "src/index.ts",
   "prisma": {
     "schema": "prisma/schema.prisma"
   },
