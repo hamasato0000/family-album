@@ -2,7 +2,7 @@
   "name": "@family-album/prisma",
   "version": "1.0.0",
   "main": "src/index.ts",
-  "type": "src/index.ts",
+  "type": "module",
   "prisma": {
     "schema": "prisma/schema.prisma"
   },
