@@ -8,6 +8,7 @@ import {
 import { Readable } from "stream";
 import dotenv from "dotenv";
 import { fileTypeFromBuffer } from "file-type";
+import { prisma } from "@family-album/prisma";
 
 dotenv.config();
 
@@ -119,4 +120,7 @@ export const handler = async (event: S3Event): Promise<void> => {
             throw error;
         }
     }
+
+    const uploadSessions = await prisma.eUploadSessions.findMany();
+    console.log("Upload sessions:", uploadSessions);
 };

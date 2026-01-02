@@ -16,7 +16,8 @@
   },
   "workspaces": [
     "api",
-    "lambdas/*"
+    "lambdas/*",
+    "common/*"
   ],
   "scripts": {
     "dev:api": "npm run dev -w @family-album/api",
@@ -25,7 +26,6 @@
   "homepage": "https://github.com/hamasato0000/family-album#readme",
   "devDependencies": {
     "@types/node": "^24.10.0",
-    "prisma": "^6.19.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
