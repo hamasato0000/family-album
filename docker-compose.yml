@@ -30,6 +30,14 @@ services:
       - .:/app
       - /app/node_modules # bind mountによる上書きから除外
       - /app/api/node_modules # bind mountによる上書きから除外
+  upload-content-verifier:
+    build:
+      context: .
+      dockerfile: ./lambdas/upload-content-verifier/Dockerfile.dev
+    ports:
+      - "9000:8080"
+    env_file:
+      - .env
 
 volumes:
   family_album_db_data:
