@@ -122,8 +122,6 @@ export const handler = async (event: S3Event): Promise<void> => {
                     updatedAt: new Date(), // TODO: ちゃんと考える
                 },
             });
-
-            // console.log("Updated upload session:", result);
         } catch (error: any) {
             console.error("Error fetching object from S3:", error);
             throw error;
