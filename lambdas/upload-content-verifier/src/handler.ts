@@ -12,7 +12,8 @@ import { prisma } from "@family-album/prisma";
 
 dotenv.config();
 
-console.log("AWS_ACCESS_KEY_ID:", process.env.AWS_ACCESS_KEY_ID);
+// 許容するファイルタイプのリストを定義
+const ALLOWED_FILE_TYPES = new Set(["jpg", "png", "heic", "heif"]);
 
 const s3 = new S3Client({
     region: "ap-northeast-1",
@@ -26,17 +27,20 @@ export const handler = async (event: S3Event): Promise<void> => {
     console.log("Received S3 Event:", JSON.stringify(event, null, 2));
 
     for (const record of event.Records) {
-        const bucketName = record.s3.bucket.name;
-        const objectKey = record.s3.object.key;
-
-        console.log(`Processing file ${objectKey}`);
-
-        const getObjectCommand = new GetObjectCommand({
-            Bucket: bucketName,
-            Key: objectKey,
-        });
-
         try {
+            ////////////////////////////////////////////
+            // イベント発生源のS3オブジェクトの取得
+            ////////////////////////////////////////////
+            const bucketName = record.s3.bucket.name;
+            const objectKey = record.s3.object.key;
+
+            console.log(`Processing file ${objectKey}`);
+
+            const getObjectCommand = new GetObjectCommand({
+                Bucket: bucketName,
+                Key: objectKey,
+            });
+
             const getObjectCommandResponse = await s3.send(getObjectCommand);
 
             // S3から取得したデータをストリームとして扱う
@@ -55,65 +59,60 @@ export const handler = async (event: S3Event): Promise<void> => {
                 `Fetched object of size ${imageBuffer.length} bytes from S3`
             );
 
-            // 許容するファイルタイプのリストを定義
-            // TODO: とりあえずコード内に定義（将来的に設定ファイルなどに移す）
-            const ALLOWED_FILE_TYPES = new Set(["jpg", "png", "heic", "heif"]);
-
-            // ファイルタイプを検出
+            ////////////////////////////////////////////
+            // ファイルタイプを検出とチェック
+            ////////////////////////////////////////////
             const fileType = await fileTypeFromBuffer(imageBuffer);
             if (!fileType) {
-                console.error(`Could not determine file type for ${objectKey}`);
-                continue;
+                throw new Error(
+                    `Could not determine file type for ${objectKey}`
+                );
             }
 
             const { ext, mime } = fileType;
             console.log(`Detected file type: ${ext}, MIME type: ${mime}`);
 
+            const lowerCaseExt = ext.toLowerCase();
+
             // 検出したファイルタイプが許容リストに含まれているか確認
-            if (!ALLOWED_FILE_TYPES.has(ext.toLowerCase())) {
+            if (!ALLOWED_FILE_TYPES.has(lowerCaseExt)) {
                 console.error(
                     `Invalid file type: ${ext} for file ${objectKey}`
                 );
                 continue;
             }
 
+            ////////////////////////////////////////////
             // 拡張子の正規化
+            ////////////////////////////////////////////
             const lastDotPosition = objectKey.lastIndexOf(".");
-            console.log("Last dot position:", lastDotPosition);
 
-            let normalizedObjectKey = null;
-
-            if (
+            const normalizedObjectKey =
                 lastDotPosition === -1 ||
                 objectKey.slice(lastDotPosition + 1).includes("/")
-            ) {
-                normalizedObjectKey = `${objectKey}.${ext}`;
-            } else {
-                normalizedObjectKey = `${objectKey.slice(
-                    0,
-                    lastDotPosition + 1
-                )}${ext}`;
-            }
+                    ? `${objectKey}.${lowerCaseExt}`
+                    : `${objectKey.slice(
+                          0,
+                          lastDotPosition + 1
+                      )}${lowerCaseExt}`;
 
             console.log("Normalized object key:", normalizedObjectKey);
 
+            ////////////////////////////////////////////////
             // 検証済みコンテンツをS3の別オブジェクトとしてコピー
-            // TODO: contentTypeも正す
+            ////////////////////////////////////////////////
             const copySource = `${bucketName}/${encodeURIComponent(objectKey)}`;
             const copyObjectCommandInput: CopyObjectCommandInput = {
                 Bucket: bucketName,
                 CopySource: copySource,
+                ContentType: mime,
                 Key: `verified/${objectKey}`,
-                MetadataDirective: "COPY",
+                MetadataDirective: "REPLACE",
             };
-
-            const copyObjectCommandResponse = await s3.send(
-                new CopyObjectCommand(copyObjectCommandInput)
-            );
+            await s3.send(new CopyObjectCommand(copyObjectCommandInput));
 
             // アップロードセッションのステータスを更新
             // TODO: アップロードセッションの期待コンテンツタイプの検証（必要？）
-            // TODO: エラーハンドリング
             const result = await prisma.eUploadSessions.update({
                 where: {
                     objectKey: objectKey,
@@ -126,13 +125,7 @@ export const handler = async (event: S3Event): Promise<void> => {
 
             // console.log("Updated upload session:", result);
         } catch (error: any) {
-            if (error?.$metadata?.httpStatusCode === 404) {
-                console.error(
-                    `File not found: ${objectKey} in bucket ${bucketName}`
-                );
-            } else {
-                console.error("Error fetching object from S3:", error);
-            }
+            console.error("Error fetching object from S3:", error);
             throw error;
         }
     }
