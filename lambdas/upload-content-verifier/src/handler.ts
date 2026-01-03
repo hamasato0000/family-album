@@ -56,6 +56,7 @@ export const handler = async (event: S3Event): Promise<void> => {
             );
 
             // 許容するファイルタイプのリストを定義
+            // TODO: とりあえずコード内に定義（将来的に設定ファイルなどに移す）
             const ALLOWED_FILE_TYPES = new Set(["jpg", "png", "heic", "heif"]);
 
             // ファイルタイプを検出
