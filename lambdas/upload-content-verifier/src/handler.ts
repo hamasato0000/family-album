@@ -110,6 +110,21 @@ export const handler = async (event: S3Event): Promise<void> => {
             const copyObjectCommandResponse = await s3.send(
                 new CopyObjectCommand(copyObjectCommandInput)
             );
+
+            // アップロードセッションのステータスを更新
+            // TODO: アップロードセッションの期待コンテンツタイプの検証（必要？）
+            // TODO: エラーハンドリング
+            const result = await prisma.eUploadSessions.update({
+                where: {
+                    objectKey: objectKey,
+                },
+                data: {
+                    uploadStatus: "uploaded",
+                    updatedAt: new Date(), // TODO: ちゃんと考える
+                },
+            });
+
+            // console.log("Updated upload session:", result);
         } catch (error: any) {
             if (error?.$metadata?.httpStatusCode === 404) {
                 console.error(
@@ -121,7 +136,4 @@ export const handler = async (event: S3Event): Promise<void> => {
             throw error;
         }
     }
-
-    const uploadSessions = await prisma.eUploadSessions.findMany();
-    console.log("Upload sessions:", uploadSessions);
 };
