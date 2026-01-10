@@ -11,8 +11,21 @@ import {
     PRESIGNED_URL_EXPIRES_SECONDS,
     getExtensionFromContentType,
 } from "./uploadConstants.js";
+import { cors } from "hono/cors";
 
 const app = new Hono();
+
+app.use(
+    "*",
+    cors({
+        origin: "*", // MVP development: allow all origins
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
+        exposeHeaders: ["Content-Length"],
+        maxAge: 600,
+        credentials: true,
+    })
+);
 const prisma = new PrismaClient();
 
 const s3 = new S3Client({
