@@ -1,0 +1,20 @@
+{
+  "name": "@family-album/thumbnail-generator",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "hamasato0000",
+  "type": "module",
+  "main": "dist/local.js",
+  "scripts": {
+    "build": "esbuild src/local.ts --bundle --platform=node --target=node22 --outfile=dist/local.cjs --external:sharp",
+    "dev": "tsx src/local-invoke.ts",
+    "invoke:lambda:thumbnail": "curl -sS -H \"Content-Type: application/json\" -d @events/s3-put.json http://localhost:9000/2015-03-31/functions/function/invocations"
+  },
+  "dependencies": {
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}
