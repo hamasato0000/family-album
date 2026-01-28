@@ -16,11 +16,15 @@ dotenv.config();
 const ALLOWED_FILE_TYPES = new Set(["jpg", "png", "heic", "heif"]);
 
 const s3 = new S3Client({
-    region: "ap-northeast-1",
+    region: process.env.AWS_REGION || "ap-northeast-1",
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || "test",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "test",
     },
+    ...(process.env.AWS_ENDPOINT_URL && {
+        endpoint: process.env.AWS_ENDPOINT_URL,
+        forcePathStyle: true, // LocalStack用にパススタイルを強制
+    }),
 });
 
 export const handler = async (event: S3Event): Promise<void> => {
@@ -89,12 +93,12 @@ export const handler = async (event: S3Event): Promise<void> => {
 
             const normalizedObjectKey =
                 lastDotPosition === -1 ||
-                objectKey.slice(lastDotPosition + 1).includes("/")
+                    objectKey.slice(lastDotPosition + 1).includes("/")
                     ? `${objectKey}.${lowerCaseExt}`
                     : `${objectKey.slice(
-                          0,
-                          lastDotPosition + 1
-                      )}${lowerCaseExt}`;
+                        0,
+                        lastDotPosition + 1
+                    )}${lowerCaseExt}`;
 
             console.log("Normalized object key:", normalizedObjectKey);
 

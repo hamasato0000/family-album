@@ -19,7 +19,7 @@ services:
     ports:
       - "4566:4566" # LocalStack Gateway
     environment:
-      - SERVICES=s3
+      - SERVICES=s3,sqs
       - DEBUG=1
       - PERSISTENCE=1
       - AWS_DEFAULT_REGION=ap-northeast-1
@@ -60,6 +60,43 @@ services:
     env_file:
       - .env
     environment:
+      - AWS_REGION=${AWS_REGION:-ap-northeast-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    depends_on:
+      - localstack
+
+  event-processor:
+    build:
+      context: .
+      dockerfile: ./services/event-processor/Dockerfile.dev
+    env_file:
+      - .env
+    environment:
+      - AWS_REGION=${AWS_REGION:-ap-northeast-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - SQS_QUEUE_NAME=${SQS_QUEUE_NAME:-s3-event-queue}
+    volumes:
+      - ./services/event-processor:/app
+      - /app/node_modules
+    depends_on:
+      - localstack
+
+  thumbnail-generator:
+    build:
+      context: .
+      dockerfile: ./lambdas/thumbnail-generator/Dockerfile.dev
+    ports:
+      - "9001:8080"
+    env_file:
+      - .env
+    environment:
+      - AWS_REGION=${AWS_REGION:-ap-northeast-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
       - AWS_ENDPOINT_URL=http://localstack:4566
     depends_on:
       - localstack
@@ -67,3 +104,5 @@ services:
 volumes:
   family_album_db_data:
   localstack_data:
+
+

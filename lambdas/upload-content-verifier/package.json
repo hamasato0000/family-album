@@ -11,7 +11,6 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "dev": "tsx src/local-invoke.ts",
     "invoke:lambda:upload": "curl -sS -H \"Content-Type: application/json\" -d @events/s3-put.json http://localhost:9000/2015-03-31/functions/function/invocations"
   },
   "dependencies": {
