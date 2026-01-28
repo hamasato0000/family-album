@@ -1,0 +1,14 @@
+FROM node:20-slim
+
+WORKDIR /app
+
+# 依存関係のインストール
+COPY services/event-processor/package*.json ./
+RUN npm install
+
+# TypeScript設定とソースコードのコピー
+COPY services/event-processor/tsconfig.json ./
+COPY services/event-processor/src ./src
+
+# 開発モードで起動
+CMD ["npm", "run", "dev"]

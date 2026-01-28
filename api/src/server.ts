@@ -21,6 +21,23 @@ const s3 = new S3Client({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
     },
+    ...(process.env.AWS_ENDPOINT_URL && {
+        endpoint: process.env.AWS_ENDPOINT_URL,
+        forcePathStyle: true,
+    }),
+});
+
+// 署名付きURL生成用のS3クライアント（ブラウザからアクセスするためlocalhostを使用）
+const s3ForPresignedUrl = new S3Client({
+    region: process.env.AWS_REGION!,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+    ...(process.env.S3_PRESIGNED_ENDPOINT && {
+        endpoint: process.env.S3_PRESIGNED_ENDPOINT,
+        forcePathStyle: true,
+    }),
 });
 
 app.get("/", (c) => c.text("Hello Hono 🫶"));
@@ -77,7 +94,7 @@ app.post(
         });
 
         // アップロード用の署名付きURLを生成
-        const uploadUrl = await getSignedUrl(s3, putObjectCommand, {
+        const uploadUrl = await getSignedUrl(s3ForPresignedUrl, putObjectCommand, {
             expiresIn: 60, // TODO: マジックナンバーを廃止
         });
 

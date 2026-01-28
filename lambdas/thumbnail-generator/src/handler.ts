@@ -3,10 +3,23 @@ import {
     PutObjectCommand,
     S3Client,
 } from "@aws-sdk/client-s3";
-import { S3Event, Context } from "aws-lambda";
+import type { S3Event, Context } from "aws-lambda";
 import sharp from "sharp";
+import dotenv from "dotenv";
 
-const s3 = new S3Client({ region: "ap-northeast-1" });
+dotenv.config();
+
+const s3 = new S3Client({
+    region: process.env.AWS_REGION || "ap-northeast-1",
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "test",
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "test",
+    },
+    ...(process.env.AWS_ENDPOINT_URL && {
+        endpoint: process.env.AWS_ENDPOINT_URL,
+        forcePathStyle: true, // LocalStack用にパススタイルを強制
+    }),
+});
 
 const THUMBNAIL_WIDTH = 300;
 const THUMBNAIL_HEIGHT = 300;
