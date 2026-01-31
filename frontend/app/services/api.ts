@@ -58,3 +58,76 @@ export async function uploadFileToS3(
         xhr.send(file);
     });
 }
+
+// Album Types
+export interface Album {
+    albumId: string;
+    createdAt: string;
+    updatedAt: string;
+    contentCount: number;
+}
+
+export interface AlbumsResponse {
+    albums: Album[];
+}
+
+export interface AlbumContent {
+    contentId: string;
+    contentType: "image" | "video";
+    uri: string | null;
+    storageKey: string;
+    caption: string | null;
+    takenAt: string | null;
+    createdAt: string;
+}
+
+export interface AlbumContentsResponse {
+    albumId: string;
+    contents: AlbumContent[];
+}
+
+// Album API Functions
+export async function createAlbum(): Promise<{ albumId: string; createdAt: string }> {
+    const response = await fetch(`${API_BASE_URL}/albums`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to create album");
+    }
+
+    return response.json();
+}
+
+export async function getAlbums(): Promise<AlbumsResponse> {
+    const response = await fetch(`${API_BASE_URL}/albums`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch albums");
+    }
+
+    return response.json();
+}
+
+export async function getAlbum(albumId: string): Promise<Album> {
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch album");
+    }
+
+    return response.json();
+}
+
+export async function getAlbumContents(albumId: string): Promise<AlbumContentsResponse> {
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/contents`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch album contents");
+    }
+
+    return response.json();
+}
