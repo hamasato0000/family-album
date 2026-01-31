@@ -65,10 +65,29 @@ export interface Album {
     createdAt: string;
     updatedAt: string;
     contentCount: number;
+    role: "owner" | "admin" | "member";
+    nickname: string;
 }
 
 export interface AlbumsResponse {
     albums: Album[];
+}
+
+export interface AlbumMember {
+    userId: string;
+    displayName: string;
+    nickname: string;
+    role: "owner" | "admin" | "member";
+    childRelation: string;
+    joinedAt: string;
+}
+
+export interface AlbumDetail {
+    albumId: string;
+    createdAt: string;
+    updatedAt: string;
+    contentCount: number;
+    members: AlbumMember[];
 }
 
 export interface AlbumContent {
@@ -87,12 +106,18 @@ export interface AlbumContentsResponse {
 }
 
 // Album API Functions
-export async function createAlbum(): Promise<{ albumId: string; createdAt: string }> {
+export interface CreateAlbumParams {
+    nickname: string;
+    childRelation: string;
+}
+
+export async function createAlbum(params: CreateAlbumParams): Promise<{ albumId: string; createdAt: string }> {
     const response = await fetch(`${API_BASE_URL}/albums`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
+        body: JSON.stringify(params),
     });
 
     if (!response.ok) {
@@ -112,7 +137,7 @@ export async function getAlbums(): Promise<AlbumsResponse> {
     return response.json();
 }
 
-export async function getAlbum(albumId: string): Promise<Album> {
+export async function getAlbum(albumId: string): Promise<AlbumDetail> {
     const response = await fetch(`${API_BASE_URL}/albums/${albumId}`);
 
     if (!response.ok) {
