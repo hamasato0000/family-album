@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useParams, Link } from "@remix-run/react";
 import { useEffect, useState } from "react";
-import { getAlbum, getAlbumContents, type Album, type AlbumContent } from "~/services/api";
+import { getAlbum, getAlbumContents, type AlbumDetail, type AlbumContent } from "~/services/api";
 
 export const meta: MetaFunction = () => {
     return [
@@ -12,7 +12,7 @@ export const meta: MetaFunction = () => {
 
 export default function AlbumDetail() {
     const { albumId } = useParams<{ albumId: string }>();
-    const [album, setAlbum] = useState<Album | null>(null);
+    const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [contents, setContents] = useState<AlbumContent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -94,18 +94,30 @@ export default function AlbumDetail() {
                             作成日: {formatDate(album.createdAt)} • {album.contentCount} 枚
                         </p>
                     </div>
-                    <button
-                        className="mt-4 md:mt-0 inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                        onClick={() => {
-                            // TODO: アップロード機能を実装
-                            alert("アップロード機能は今後実装予定です");
-                        }}
-                    >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        写真を追加
-                    </button>
+                    <div className="flex items-center gap-3 mt-4 md:mt-0">
+                        <button
+                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                            onClick={() => {
+                                // TODO: アップロード機能を実装
+                                alert("アップロード機能は今後実装予定です");
+                            }}
+                        >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            写真を追加
+                        </button>
+                        <Link
+                            to={`/albums/${album.albumId}/settings`}
+                            className="inline-flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl shadow hover:bg-gray-50 transition-all duration-200"
+                        >
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            設定
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Contents Grid */}
@@ -119,20 +131,9 @@ export default function AlbumDetail() {
                         <h2 className="text-2xl font-semibold text-gray-700 mb-2">
                             まだ写真がありません
                         </h2>
-                        <p className="text-gray-500 mb-8">
-                            最初の写真を追加して、思い出を残しましょう
+                        <p className="text-gray-500">
+                            上の「写真を追加」ボタンから、思い出を残しましょう
                         </p>
-                        <button
-                            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                            onClick={() => {
-                                alert("アップロード機能は今後実装予定です");
-                            }}
-                        >
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                            </svg>
-                            写真を追加
-                        </button>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

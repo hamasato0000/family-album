@@ -2,10 +2,10 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { zValidator } from "@hono/zod-validator";
-import { generateSignedUrlRequestSchema } from "./schemas.js";
+import { generateSignedUrlRequestSchema, createAlbumRequestSchema } from "./schemas.js";
 import {
     MAX_UPLOAD_BYTES,
     PRESIGNED_URL_EXPIRES_SECONDS,
@@ -132,43 +132,78 @@ app.post(
 
 /*
  * アルバムを作成する
+ * NOTE: MVPでは認証未実装のため、ユーザーIDはハードコード
  */
-app.post("/albums", async (c) => {
-    const newAlbum = await prisma.rAlbums.create({
-        data: {},
-    });
+const DEV_USER_ID = BigInt(1); // 開発用ユーザーID
 
-    return c.json({
-        albumId: newAlbum.albumId.toString(),
-        createdAt: newAlbum.createdAt.toISOString(),
-    }, 201);
-});
+app.post(
+    "/albums",
+    zValidator("json", createAlbumRequestSchema),
+    async (c) => {
+        const { nickname, childRelation } = c.req.valid("json");
+
+        // トランザクションでアルバムとユーザー紐付けを同時に作成
+        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            // 1. アルバムを作成
+            const newAlbum = await tx.rAlbums.create({
+                data: {},
+            });
+
+            // 2. ユーザーとアルバムを紐付け（作成者は owner ロール）
+            await tx.rUsersAlbums.create({
+                data: {
+                    userId: DEV_USER_ID,
+                    albumId: newAlbum.albumId,
+                    role: "owner",
+                    childRelation: childRelation,
+                    nickname: nickname,
+                },
+            });
+
+            return newAlbum;
+        });
+
+        return c.json({
+            albumId: result.albumId.toString(),
+            createdAt: result.createdAt.toISOString(),
+        }, 201);
+    }
+);
 
 /*
  * アルバム一覧を取得する
+ * NOTE: ユーザーが参加しているアルバムのみ取得
  */
 app.get("/albums", async (c) => {
-    const albums = await prisma.rAlbums.findMany({
-        orderBy: { createdAt: "desc" },
+    // ユーザーが参加しているアルバムを取得
+    const userAlbums = await prisma.rUsersAlbums.findMany({
+        where: { userId: DEV_USER_ID },
         include: {
-            _count: {
-                select: { contents: true },
+            album: {
+                include: {
+                    _count: {
+                        select: { contents: true },
+                    },
+                },
             },
         },
+        orderBy: { album: { createdAt: "desc" } },
     });
 
     return c.json({
-        albums: albums.map((album) => ({
-            albumId: album.albumId.toString(),
-            createdAt: album.createdAt.toISOString(),
-            updatedAt: album.updatedAt.toISOString(),
-            contentCount: album._count.contents,
+        albums: userAlbums.map((ua: typeof userAlbums[number]) => ({
+            albumId: ua.album.albumId.toString(),
+            createdAt: ua.album.createdAt.toISOString(),
+            updatedAt: ua.album.updatedAt.toISOString(),
+            contentCount: ua.album._count.contents,
+            role: ua.role,
+            nickname: ua.nickname,
         })),
     });
 });
 
 /*
- * アルバム詳細を取得する
+ * アルバム詳細を取得する（メンバー情報含む）
  */
 app.get("/albums/:albumId", async (c) => {
     const albumId = c.req.param("albumId");
@@ -178,6 +213,20 @@ app.get("/albums/:albumId", async (c) => {
         include: {
             _count: {
                 select: { contents: true },
+            },
+            usersAlbums: {
+                include: {
+                    user: {
+                        select: {
+                            userId: true,
+                            displayName: true,
+                        },
+                    },
+                },
+                orderBy: [
+                    { role: "asc" }, // owner -> admin -> member の順
+                    { joinedAt: "asc" },
+                ],
             },
         },
     });
@@ -191,6 +240,14 @@ app.get("/albums/:albumId", async (c) => {
         createdAt: album.createdAt.toISOString(),
         updatedAt: album.updatedAt.toISOString(),
         contentCount: album._count.contents,
+        members: album.usersAlbums.map((ua: typeof album.usersAlbums[number]) => ({
+            userId: ua.user.userId.toString(),
+            displayName: ua.user.displayName,
+            nickname: ua.nickname,
+            role: ua.role,
+            childRelation: ua.childRelation,
+            joinedAt: ua.joinedAt.toISOString(),
+        })),
     });
 });
 

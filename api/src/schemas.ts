@@ -12,3 +12,9 @@ export const generateSignedUrlRequestSchema = z.object({
         )}`,
     }),
 });
+
+// アルバム作成リクエストのスキーマ
+export const createAlbumRequestSchema = z.object({
+    nickname: z.string().min(1, "ニックネームは必須です").max(50, "ニックネームは50文字以内で入力してください"),
+    childRelation: z.string().min(1, "子どもとの関係は必須です").max(20, "子どもとの関係は20文字以内で入力してください"),
+});

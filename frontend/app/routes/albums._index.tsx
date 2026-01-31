@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@remix-run/react";
-import { getAlbums, createAlbum, type Album } from "~/services/api";
+import { Link } from "@remix-run/react";
+import { getAlbums, type Album } from "~/services/api";
 
 export const meta: MetaFunction = () => {
     return [
@@ -13,9 +13,7 @@ export const meta: MetaFunction = () => {
 export default function AlbumsIndex() {
     const [albums, setAlbums] = useState<Album[]>([]);
     const [loading, setLoading] = useState(true);
-    const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const navigate = useNavigate();
 
     useEffect(() => {
         fetchAlbums();
@@ -31,19 +29,6 @@ export default function AlbumsIndex() {
             console.error(err);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleCreateAlbum = async () => {
-        try {
-            setCreating(true);
-            const result = await createAlbum();
-            navigate(`/albums/${result.albumId}`);
-        } catch (err) {
-            setError("アルバムの作成に失敗しました");
-            console.error(err);
-        } finally {
-            setCreating(false);
         }
     };
 
@@ -68,28 +53,15 @@ export default function AlbumsIndex() {
                             大切な思い出を家族と共有しましょう
                         </p>
                     </div>
-                    <button
-                        onClick={handleCreateAlbum}
-                        disabled={creating}
-                        className="mt-4 md:mt-0 inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <Link
+                        to="/albums/new"
+                        className="mt-4 md:mt-0 inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                     >
-                        {creating ? (
-                            <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                作成中...
-                            </>
-                        ) : (
-                            <>
-                                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                新規アルバム作成
-                            </>
-                        )}
-                    </button>
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        新規アルバム作成
+                    </Link>
                 </div>
 
                 {/* Error Message */}
@@ -118,16 +90,15 @@ export default function AlbumsIndex() {
                         <p className="text-gray-500 mb-8">
                             新しいアルバムを作成して、思い出を残しましょう
                         </p>
-                        <button
-                            onClick={handleCreateAlbum}
-                            disabled={creating}
+                        <Link
+                            to="/albums/new"
                             className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                         >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
                             最初のアルバムを作成
-                        </button>
+                        </Link>
                     </div>
                 ) : (
                     /* Album Grid */
