@@ -1,7 +1,8 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useState } from "react";
 import { useNavigate } from "@remix-run/react";
-import { createAlbum } from "~/services/api";
+import { useApi } from "~/hooks/useApi";
+import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
 import { PageLayout } from "~/components/common/PageLayout";
 import { BackLink } from "~/components/common/BackLink";
 import { Button } from "~/components/ui/Button";
@@ -25,12 +26,21 @@ const CHILD_RELATIONS = [
     "その他",
 ];
 
-export default function NewAlbum() {
+export default function NewAlbumPage() {
+    return (
+        <ProtectedRoute>
+            <NewAlbumContent />
+        </ProtectedRoute>
+    );
+}
+
+function NewAlbumContent() {
     const [nickname, setNickname] = useState("");
     const [childRelation, setChildRelation] = useState("");
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const navigate = useNavigate();
+    const api = useApi();
 
     const isFormValid = nickname.trim().length > 0 && childRelation.length > 0;
 
@@ -41,7 +51,7 @@ export default function NewAlbum() {
         try {
             setCreating(true);
             setError(null);
-            const result = await createAlbum({
+            const result = await api.createAlbum({
                 nickname: nickname.trim(),
                 childRelation,
             });
@@ -146,3 +156,4 @@ export default function NewAlbum() {
         </PageLayout>
     );
 }
+
