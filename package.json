@@ -17,11 +17,16 @@
   "workspaces": [
     "api",
     "lambdas/*",
-    "common/*"
+    "common/*",
+    "frontend"
   ],
   "scripts": {
     "dev:api": "npm run dev -w @family-album/api",
     "dev:upload-content-verifier": "npm run dev -w @family-album/upload-content-verifier"
+  },
+  "overrides": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "homepage": "https://github.com/hamasato0000/family-album#readme",
   "devDependencies": {

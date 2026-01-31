@@ -11,8 +11,21 @@ import {
     PRESIGNED_URL_EXPIRES_SECONDS,
     getExtensionFromContentType,
 } from "./uploadConstants.js";
+import { cors } from "hono/cors";
 
 const app = new Hono();
+
+app.use(
+    "*",
+    cors({
+        origin: "*", // MVP development: allow all origins
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
+        exposeHeaders: ["Content-Length"],
+        maxAge: 600,
+        credentials: true,
+    })
+);
 const prisma = new PrismaClient();
 
 const s3 = new S3Client({
@@ -116,6 +129,113 @@ app.post(
         return c.json({ uploadUrl });
     }
 );
+
+/*
+ * アルバムを作成する
+ */
+app.post("/albums", async (c) => {
+    const newAlbum = await prisma.rAlbums.create({
+        data: {},
+    });
+
+    return c.json({
+        albumId: newAlbum.albumId.toString(),
+        createdAt: newAlbum.createdAt.toISOString(),
+    }, 201);
+});
+
+/*
+ * アルバム一覧を取得する
+ */
+app.get("/albums", async (c) => {
+    const albums = await prisma.rAlbums.findMany({
+        orderBy: { createdAt: "desc" },
+        include: {
+            _count: {
+                select: { contents: true },
+            },
+        },
+    });
+
+    return c.json({
+        albums: albums.map((album) => ({
+            albumId: album.albumId.toString(),
+            createdAt: album.createdAt.toISOString(),
+            updatedAt: album.updatedAt.toISOString(),
+            contentCount: album._count.contents,
+        })),
+    });
+});
+
+/*
+ * アルバム詳細を取得する
+ */
+app.get("/albums/:albumId", async (c) => {
+    const albumId = c.req.param("albumId");
+
+    const album = await prisma.rAlbums.findUnique({
+        where: { albumId: BigInt(albumId) },
+        include: {
+            _count: {
+                select: { contents: true },
+            },
+        },
+    });
+
+    if (!album) {
+        return c.json({ message: "Album not found" }, 404);
+    }
+
+    return c.json({
+        albumId: album.albumId.toString(),
+        createdAt: album.createdAt.toISOString(),
+        updatedAt: album.updatedAt.toISOString(),
+        contentCount: album._count.contents,
+    });
+});
+
+/*
+ * アルバム内のコンテンツ一覧を取得する
+ */
+app.get("/albums/:albumId/contents", async (c) => {
+    const albumId = c.req.param("albumId");
+
+    // アルバムの存在確認
+    const album = await prisma.rAlbums.findUnique({
+        where: { albumId: BigInt(albumId) },
+    });
+
+    if (!album) {
+        return c.json({ message: "Album not found" }, 404);
+    }
+
+    const contents = await prisma.rContents.findMany({
+        where: { albumId: BigInt(albumId) },
+        orderBy: { createdAt: "desc" },
+        select: {
+            contentId: true,
+            contentType: true,
+            uri: true,
+            storageKey: true,
+            caption: true,
+            takenAt: true,
+            createdAt: true,
+        },
+    });
+
+    return c.json({
+        albumId: albumId,
+        contents: contents.map((content) => ({
+            contentId: content.contentId.toString(),
+            contentType: content.contentType,
+            uri: content.uri,
+            storageKey: content.storageKey,
+            caption: content.caption,
+            takenAt: content.takenAt?.toISOString() ?? null,
+            createdAt: content.createdAt.toISOString(),
+        })),
+    });
+});
 
 const port = Number(process.env.PORT ?? 3000);
 console.log(`Listening on http://localhost:${port}`);
