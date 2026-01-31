@@ -1,6 +1,8 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useEffect, useState } from "react";
-import { getAlbums, type Album } from "~/services/api";
+import { type Album } from "~/services/api";
+import { useApi } from "~/hooks/useApi";
+import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
 import { PageLayout } from "~/components/common/PageLayout";
 import { LoadingSpinner } from "~/components/common/LoadingSpinner";
 import { EmptyState } from "~/components/ui/EmptyState";
@@ -16,9 +18,18 @@ export const meta: MetaFunction = () => {
 };
 
 export default function AlbumsIndex() {
+    return (
+        <ProtectedRoute>
+            <AlbumsIndexContent />
+        </ProtectedRoute>
+    );
+}
+
+function AlbumsIndexContent() {
     const [albums, setAlbums] = useState<Album[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const api = useApi();
 
     useEffect(() => {
         fetchAlbums();
@@ -27,7 +38,7 @@ export default function AlbumsIndex() {
     const fetchAlbums = async () => {
         try {
             setLoading(true);
-            const response = await getAlbums();
+            const response = await api.getAlbums();
             setAlbums(response.albums);
         } catch (err) {
             setError("アルバムの取得に失敗しました");
@@ -90,3 +101,4 @@ export default function AlbumsIndex() {
         </PageLayout>
     );
 }
+

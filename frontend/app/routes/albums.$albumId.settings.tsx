@@ -1,7 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useParams } from "@remix-run/react";
 import { useEffect, useState } from "react";
-import { getAlbum, type AlbumDetail } from "~/services/api";
+import { type AlbumDetail } from "~/services/api";
+import { useApi } from "~/hooks/useApi";
+import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
 import { PageLayout } from "~/components/common/PageLayout";
 import { LoadingSpinner } from "~/components/common/LoadingSpinner";
 import { ErrorMessage } from "~/components/common/ErrorMessage";
@@ -18,11 +20,20 @@ export const meta: MetaFunction = () => {
     ];
 };
 
-export default function AlbumSettings() {
+export default function AlbumSettingsPage() {
+    return (
+        <ProtectedRoute>
+            <AlbumSettingsContent />
+        </ProtectedRoute>
+    );
+}
+
+function AlbumSettingsContent() {
     const { albumId } = useParams<{ albumId: string }>();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const api = useApi();
 
     useEffect(() => {
         if (albumId) {
@@ -33,7 +44,7 @@ export default function AlbumSettings() {
     const fetchAlbum = async (id: string) => {
         try {
             setLoading(true);
-            const albumData = await getAlbum(id);
+            const albumData = await api.getAlbum(id);
             setAlbum(albumData);
         } catch (err) {
             setError("アルバムの取得に失敗しました");
@@ -121,3 +132,4 @@ export default function AlbumSettings() {
         </PageLayout>
     );
 }
+

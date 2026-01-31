@@ -1,17 +1,30 @@
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 export interface SignedUrlResponse {
     uploadUrl: string;
 }
 
+export interface ApiOptions {
+    accessToken?: string;
+}
+
+function createHeaders(options?: ApiOptions): HeadersInit {
+    const headers: HeadersInit = {
+        "Content-Type": "application/json",
+    };
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+    return headers;
+}
+
 export async function generateSignedUrl(
-    contentType: string
+    contentType: string,
+    options?: ApiOptions
 ): Promise<string> {
     const response = await fetch(`${API_BASE_URL}/contents/generate-signed-url`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: createHeaders(options),
         body: JSON.stringify({ contentType }),
     });
 
@@ -111,12 +124,13 @@ export interface CreateAlbumParams {
     childRelation: string;
 }
 
-export async function createAlbum(params: CreateAlbumParams): Promise<{ albumId: string; createdAt: string }> {
+export async function createAlbum(
+    params: CreateAlbumParams,
+    options?: ApiOptions
+): Promise<{ albumId: string; createdAt: string }> {
     const response = await fetch(`${API_BASE_URL}/albums`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: createHeaders(options),
         body: JSON.stringify(params),
     });
 
@@ -127,8 +141,12 @@ export async function createAlbum(params: CreateAlbumParams): Promise<{ albumId:
     return response.json();
 }
 
-export async function getAlbums(): Promise<AlbumsResponse> {
-    const response = await fetch(`${API_BASE_URL}/albums`);
+export async function getAlbums(options?: ApiOptions): Promise<AlbumsResponse> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/albums`, { headers });
 
     if (!response.ok) {
         throw new Error("Failed to fetch albums");
@@ -137,8 +155,12 @@ export async function getAlbums(): Promise<AlbumsResponse> {
     return response.json();
 }
 
-export async function getAlbum(albumId: string): Promise<AlbumDetail> {
-    const response = await fetch(`${API_BASE_URL}/albums/${albumId}`);
+export async function getAlbum(albumId: string, options?: ApiOptions): Promise<AlbumDetail> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}`, { headers });
 
     if (!response.ok) {
         throw new Error("Failed to fetch album");
@@ -147,8 +169,15 @@ export async function getAlbum(albumId: string): Promise<AlbumDetail> {
     return response.json();
 }
 
-export async function getAlbumContents(albumId: string): Promise<AlbumContentsResponse> {
-    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/contents`);
+export async function getAlbumContents(
+    albumId: string,
+    options?: ApiOptions
+): Promise<AlbumContentsResponse> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/contents`, { headers });
 
     if (!response.ok) {
         throw new Error("Failed to fetch album contents");
@@ -156,3 +185,4 @@ export async function getAlbumContents(albumId: string): Promise<AlbumContentsRe
 
     return response.json();
 }
+

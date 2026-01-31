@@ -3,6 +3,7 @@ import { serve } from "@hono/node-server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PrismaClient, Prisma } from "@prisma/client";
+import type { RUsers } from "@prisma/client";
 import { randomUUID } from "crypto";
 import { zValidator } from "@hono/zod-validator";
 import { generateSignedUrlRequestSchema, createAlbumRequestSchema } from "./schemas.js";
@@ -12,8 +13,17 @@ import {
     getExtensionFromContentType,
 } from "./uploadConstants.js";
 import { cors } from "hono/cors";
+import { authMiddleware } from "./middleware/auth.js";
+import type { AuthUser } from "./middleware/auth.js";
+import { albumAccessMiddleware } from "./middleware/albumAccess.js";
 
-const app = new Hono();
+// Hono の Variables 型を定義
+type Variables = {
+    user: AuthUser;
+    dbUser: RUsers;
+};
+
+const app = new Hono<{ Variables: Variables }>();
 
 app.use(
     "*",
@@ -67,11 +77,22 @@ app.get("/health/db", async (c) => {
     }
 });
 
+/**
+ * ヘルパー関数: Auth0のsub（idpUserId）からDBユーザーを取得
+ */
+async function getDbUserFromAuth(user: AuthUser): Promise<RUsers | null> {
+    return prisma.rUsers.findUnique({
+        where: { idpUserId: user.sub },
+    });
+}
+
 /*
  * アップロード用の署名付きURLを生成する
+ * NOTE: 認証必須
  */
 app.post(
     "/contents/generate-signed-url",
+    authMiddleware,
     zValidator("json", generateSignedUrlRequestSchema),
     async (c) => {
         console.log("Request context:", c);
@@ -132,15 +153,21 @@ app.post(
 
 /*
  * アルバムを作成する
- * NOTE: MVPでは認証未実装のため、ユーザーIDはハードコード
+ * NOTE: 認証必須
  */
-const DEV_USER_ID = BigInt(1); // 開発用ユーザーID
-
 app.post(
     "/albums",
+    authMiddleware,
     zValidator("json", createAlbumRequestSchema),
     async (c) => {
+        const user = c.get("user");
         const { nickname, childRelation } = c.req.valid("json");
+
+        // DBユーザーを取得
+        const dbUser = await getDbUserFromAuth(user);
+        if (!dbUser) {
+            return c.json({ message: "User not found in database" }, 404);
+        }
 
         // トランザクションでアルバムとユーザー紐付けを同時に作成
         const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -152,7 +179,7 @@ app.post(
             // 2. ユーザーとアルバムを紐付け（作成者は owner ロール）
             await tx.rUsersAlbums.create({
                 data: {
-                    userId: DEV_USER_ID,
+                    userId: dbUser.userId,
                     albumId: newAlbum.albumId,
                     role: "owner",
                     childRelation: childRelation,
@@ -172,12 +199,20 @@ app.post(
 
 /*
  * アルバム一覧を取得する
- * NOTE: ユーザーが参加しているアルバムのみ取得
+ * NOTE: ユーザーが参加しているアルバムのみ取得、認証必須
  */
-app.get("/albums", async (c) => {
+app.get("/albums", authMiddleware, async (c) => {
+    const user = c.get("user");
+
+    // DBユーザーを取得
+    const dbUser = await getDbUserFromAuth(user);
+    if (!dbUser) {
+        return c.json({ message: "User not found in database" }, 404);
+    }
+
     // ユーザーが参加しているアルバムを取得
     const userAlbums = await prisma.rUsersAlbums.findMany({
-        where: { userId: DEV_USER_ID },
+        where: { userId: dbUser.userId },
         include: {
             album: {
                 include: {
@@ -204,8 +239,9 @@ app.get("/albums", async (c) => {
 
 /*
  * アルバム詳細を取得する（メンバー情報含む）
+ * NOTE: 認証必須、アルバムメンバーのみアクセス可能
  */
-app.get("/albums/:albumId", async (c) => {
+app.get("/albums/:albumId", authMiddleware, albumAccessMiddleware, async (c) => {
     const albumId = c.req.param("albumId");
 
     const album = await prisma.rAlbums.findUnique({
@@ -253,18 +289,10 @@ app.get("/albums/:albumId", async (c) => {
 
 /*
  * アルバム内のコンテンツ一覧を取得する
+ * NOTE: 認証必須、アルバムメンバーのみアクセス可能
  */
-app.get("/albums/:albumId/contents", async (c) => {
+app.get("/albums/:albumId/contents", authMiddleware, albumAccessMiddleware, async (c) => {
     const albumId = c.req.param("albumId");
-
-    // アルバムの存在確認
-    const album = await prisma.rAlbums.findUnique({
-        where: { albumId: BigInt(albumId) },
-    });
-
-    if (!album) {
-        return c.json({ message: "Album not found" }, 404);
-    }
 
     const contents = await prisma.rContents.findMany({
         where: { albumId: BigInt(albumId) },
@@ -313,3 +341,4 @@ const shutdown = async () => {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+

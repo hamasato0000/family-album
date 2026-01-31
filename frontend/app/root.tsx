@@ -6,6 +6,7 @@ import {
     ScrollRestoration,
 } from "@remix-run/react";
 import "./index.css";
+import { AuthProvider } from "~/components/auth/AuthProvider";
 
 export function Layout({ children }: { children: React.ReactNode }) {
     return (
@@ -26,9 +27,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-    return <Outlet />;
+    return (
+        <AuthProvider>
+            <Outlet />
+        </AuthProvider>
+    );
 }
 
 export function HydrateFallback() {
     return <p>Loading...</p>;
 }
+

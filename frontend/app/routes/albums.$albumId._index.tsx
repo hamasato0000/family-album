@@ -1,7 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useParams } from "@remix-run/react";
 import { useEffect, useState } from "react";
-import { getAlbum, getAlbumContents, type AlbumDetail, type AlbumContent } from "~/services/api";
+import { type AlbumDetail, type AlbumContent } from "~/services/api";
+import { useApi } from "~/hooks/useApi";
+import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
 import { PageLayout } from "~/components/common/PageLayout";
 import { LoadingSpinner } from "~/components/common/LoadingSpinner";
 import { ErrorMessage } from "~/components/common/ErrorMessage";
@@ -19,12 +21,21 @@ export const meta: MetaFunction = () => {
     ];
 };
 
-export default function AlbumDetail() {
+export default function AlbumDetailPage() {
+    return (
+        <ProtectedRoute>
+            <AlbumDetailContent />
+        </ProtectedRoute>
+    );
+}
+
+function AlbumDetailContent() {
     const { albumId } = useParams<{ albumId: string }>();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [contents, setContents] = useState<AlbumContent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const api = useApi();
 
     useEffect(() => {
         if (albumId) {
@@ -36,8 +47,8 @@ export default function AlbumDetail() {
         try {
             setLoading(true);
             const [albumData, contentsData] = await Promise.all([
-                getAlbum(id),
-                getAlbumContents(id),
+                api.getAlbum(id),
+                api.getAlbumContents(id),
             ]);
             setAlbum(albumData);
             setContents(contentsData.contents);
@@ -119,3 +130,4 @@ export default function AlbumDetail() {
         </PageLayout>
     );
 }
+
