@@ -35,6 +35,27 @@ else
   echo "Bucket $S3_BUCKET created successfully"
 fi
 
+# CORS設定の適用
+echo "Configuring CORS for S3 bucket: $S3_BUCKET"
+cat > /tmp/cors.json <<EOF
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": ["*"],
+      "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"]
+    }
+  ]
+}
+EOF
+
+aws --endpoint-url=$ENDPOINT_URL s3api put-bucket-cors \
+  --bucket $S3_BUCKET \
+  --cors-configuration file:///tmp/cors.json
+
+echo "CORS configuration applied successfully"
+
 # SQSキューの作成
 echo "Creating SQS queue: $SQS_QUEUE_NAME"
 QUEUE_URL=$(aws --endpoint-url=$ENDPOINT_URL sqs create-queue \
