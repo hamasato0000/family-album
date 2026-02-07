@@ -28,9 +28,20 @@ export function useApi() {
         return api.createAlbum(params, { accessToken });
     }, [getAccessTokenSilently]);
 
-    const generateSignedUrl = useCallback(async (contentType: string) => {
+    // 新しいアップロードAPI
+    const createUpload = useCallback(async (albumId: string, contentCount: number) => {
         const accessToken = await getAccessTokenSilently();
-        return api.generateSignedUrl(contentType, { accessToken });
+        return api.createUpload(albumId, contentCount, { accessToken });
+    }, [getAccessTokenSilently]);
+
+    const createUploadContents = useCallback(async (uploadId: string, contents: api.ContentInfo[]) => {
+        const accessToken = await getAccessTokenSilently();
+        return api.createUploadContents(uploadId, contents, { accessToken });
+    }, [getAccessTokenSilently]);
+
+    const getUploadStatus = useCallback(async (uploadId: string) => {
+        const accessToken = await getAccessTokenSilently();
+        return api.getUploadStatus(uploadId, { accessToken });
     }, [getAccessTokenSilently]);
 
     return {
@@ -38,6 +49,8 @@ export function useApi() {
         getAlbum,
         getAlbumContents,
         createAlbum,
-        generateSignedUrl,
+        createUpload,
+        createUploadContents,
+        getUploadStatus,
     };
 }
