@@ -25,7 +25,7 @@ export async function albumAccessMiddleware(c: Context, next: Next) {
 
     try {
         // idpUserIdからDBのユーザーを取得
-        const dbUser = await prisma.rUsers.findUnique({
+        const dbUser = await prisma.rUser.findUnique({
             where: { idpUserId: user.sub },
         });
 
@@ -34,11 +34,11 @@ export async function albumAccessMiddleware(c: Context, next: Next) {
         }
 
         // ユーザーがアルバムのメンバーかチェック
-        const membership = await prisma.rUsersAlbums.findUnique({
+        const membership = await prisma.rUserAlbum.findUnique({
             where: {
                 userId_albumId: {
                     userId: dbUser.userId,
-                    albumId: BigInt(albumId),
+                    albumId: albumId,
                 },
             },
         });

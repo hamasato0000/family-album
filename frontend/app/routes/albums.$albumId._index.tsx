@@ -10,7 +10,9 @@ import { ErrorMessage } from "~/components/common/ErrorMessage";
 import { BackLink } from "~/components/common/BackLink";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { Button } from "~/components/ui/Button";
+import { Modal } from "~/components/ui/Modal";
 import { ContentItem } from "~/components/album/ContentItem";
+import { Upload } from "~/components/Upload";
 import { PhotoIcon, UploadIcon, SettingsIcon } from "~/components/icons/Icons";
 import { formatDate } from "~/utils/date";
 
@@ -35,6 +37,7 @@ function AlbumDetailContent() {
     const [contents, setContents] = useState<AlbumContent[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const api = useApi();
 
     useEffect(() => {
@@ -57,6 +60,14 @@ function AlbumDetailContent() {
             console.error(err);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleUploadComplete = () => {
+        setIsUploadModalOpen(false);
+        // コンテンツを再読み込み
+        if (albumId) {
+            fetchAlbumData(albumId);
         }
     };
 
@@ -91,12 +102,7 @@ function AlbumDetailContent() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3 mt-4 md:mt-0">
-                    <Button
-                        onClick={() => {
-                            // TODO: アップロード機能を実装
-                            alert("アップロード機能は今後実装予定です");
-                        }}
-                    >
+                    <Button onClick={() => setIsUploadModalOpen(true)}>
                         <UploadIcon className="w-5 h-5 mr-2" />
                         写真を追加
                     </Button>
@@ -121,13 +127,25 @@ function AlbumDetailContent() {
                             key={content.contentId}
                             contentId={content.contentId}
                             contentType={content.contentType as "image" | "video"}
-                            uri={content.uri ?? undefined}
+                            uri={content.thumbnailUrl ?? content.rawUrl ?? undefined}
                             caption={content.caption ?? undefined}
                         />
                     ))}
                 </div>
             )}
+
+            {/* Upload Modal */}
+            <Modal
+                isOpen={isUploadModalOpen}
+                onClose={() => setIsUploadModalOpen(false)}
+                title="写真をアップロード"
+            >
+                <Upload
+                    albumId={albumId!}
+                    onUploadComplete={handleUploadComplete}
+                    onCancel={() => setIsUploadModalOpen(false)}
+                />
+            </Modal>
         </PageLayout>
     );
 }
-

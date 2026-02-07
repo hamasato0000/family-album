@@ -1,9 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-export interface SignedUrlResponse {
-    uploadUrl: string;
-}
-
 export interface ApiOptions {
     accessToken?: string;
 }
@@ -18,24 +14,134 @@ function createHeaders(options?: ApiOptions): HeadersInit {
     return headers;
 }
 
-export async function generateSignedUrl(
-    contentType: string,
+// ============================================================
+// アップロード API
+// ============================================================
+
+// アップロード開始レスポンス
+export interface CreateUploadResponse {
+    upload_id: string;
+    status: string;
+    content_count: number;
+    created_at: string;
+}
+
+// 署名付きURL生成リクエスト
+export interface ContentInfo {
+    filename: string;
+    contentType: "image/jpeg" | "image/png";
+}
+
+// 署名付きURL生成レスポンス
+export interface ContentWithUrl {
+    content_id: string;
+    presigned_url: string;
+    expires_in: number;
+}
+
+export interface CreateUploadContentsResponse {
+    contents: ContentWithUrl[];
+}
+
+// アップロード状態レスポンス
+export interface UploadContentStatus {
+    content_id: string;
+    status: "pending" | "processing" | "completed" | "failed";
+    thumbnail_url?: string;
+    raw_url?: string;
+    width?: number;
+    height?: number;
+    file_size?: number;
+    error_message?: string;
+}
+
+export interface UploadStatusResponse {
+    upload_id: string;
+    status: string;
+    content_count: number;
+    created_at: string;
+    completed_at: string | null;
+    contents: UploadContentStatus[];
+    summary: {
+        pending: number;
+        processing: number;
+        completed: number;
+        failed: number;
+    };
+}
+
+/**
+ * アップロードを開始する
+ * POST /albums/:albumId/uploads
+ */
+export async function createUpload(
+    albumId: string,
+    contentCount: number,
     options?: ApiOptions
-): Promise<string> {
-    const response = await fetch(`${API_BASE_URL}/contents/generate-signed-url`, {
+): Promise<CreateUploadResponse> {
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/uploads`, {
         method: "POST",
         headers: createHeaders(options),
-        body: JSON.stringify({ contentType }),
+        body: JSON.stringify({ content_count: contentCount }),
     });
 
     if (!response.ok) {
-        throw new Error("Failed to generate signed URL");
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to create upload");
     }
 
-    const data: SignedUrlResponse = await response.json();
-    return data.uploadUrl;
+    return response.json();
 }
 
+/**
+ * 署名付きURLを一括生成する
+ * POST /uploads/{uploadId}/contents
+ */
+export async function createUploadContents(
+    uploadId: string,
+    contents: ContentInfo[],
+    options?: ApiOptions
+): Promise<CreateUploadContentsResponse> {
+    const response = await fetch(`${API_BASE_URL}/uploads/${uploadId}/contents`, {
+        method: "POST",
+        headers: createHeaders(options),
+        body: JSON.stringify({ contents }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to create upload contents");
+    }
+
+    return response.json();
+}
+
+/**
+ * アップロード状態を取得する
+ * GET /uploads/{uploadId}
+ */
+export async function getUploadStatus(
+    uploadId: string,
+    options?: ApiOptions
+): Promise<UploadStatusResponse> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/uploads/${uploadId}`, { headers });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to get upload status");
+    }
+
+    return response.json();
+}
+
+/**
+ * S3に直接ファイルをアップロードする
+ */
 export async function uploadFileToS3(
     file: File,
     signedUrl: string,
@@ -72,7 +178,10 @@ export async function uploadFileToS3(
     });
 }
 
-// Album Types
+// ============================================================
+// アルバム API
+// ============================================================
+
 export interface Album {
     albumId: string;
     createdAt: string;
@@ -106,8 +215,8 @@ export interface AlbumDetail {
 export interface AlbumContent {
     contentId: string;
     contentType: "image" | "video";
-    uri: string | null;
-    storageKey: string;
+    rawUrl: string | null;
+    thumbnailUrl: string | null;
     caption: string | null;
     takenAt: string | null;
     createdAt: string;
@@ -118,7 +227,6 @@ export interface AlbumContentsResponse {
     contents: AlbumContent[];
 }
 
-// Album API Functions
 export interface CreateAlbumParams {
     nickname: string;
     childRelation: string;
@@ -185,4 +293,3 @@ export async function getAlbumContents(
 
     return response.json();
 }
-

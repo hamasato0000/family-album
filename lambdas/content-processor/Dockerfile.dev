@@ -7,23 +7,28 @@ WORKDIR /app
 
 # 依存解決だけ先に（キャッシュを効かせる）
 COPY package*.json ./
-COPY lambdas/thumbnail-generator/package*.json ./lambdas/thumbnail-generator/
+COPY common/*/package*.json ./common/
+COPY lambdas/content-processor/package*.json ./lambdas/content-processor/
 
 # Lambda パッケージの依存を入れる
-ARG LAMBDA_WORKSPACE=@family-album/thumbnail-generator
+ARG LAMBDA_WORKSPACE=@family-album/content-processor
+ARG PRISMA_WORKSPACE=@family-album/prisma
 
 RUN npm ci --include-workspace-root \
-    --workspace=${LAMBDA_WORKSPACE}
+    --workspace=${LAMBDA_WORKSPACE} \
+    --workspace=${PRISMA_WORKSPACE}
 
 # ソースをコピー
 COPY . .
 
-# Lambda のビルド（Docker内ではtscを使用）
-RUN cd lambdas/thumbnail-generator && npx tsc -p .
+# Prisma Client 生成（schema は @family-album/prisma の package.json の prisma.schema を使う）
+RUN npm run generate -w ${PRISMA_WORKSPACE}
+
+# Lambda のビルド（TypeScript なら dist を作る想定）
+RUN npm run build -w ${LAMBDA_WORKSPACE}
 
 # 実行に不要な devDependencies を削る
 RUN npm prune --omit=dev --workspaces --include-workspace-root
-
 
 # 実行ステージ（Lambda 公式ベースイメージ）
 FROM public.ecr.aws/lambda/nodejs:22 AS runtime
@@ -32,10 +37,9 @@ WORKDIR /var/task
 
 # ワークスペースの symlink を壊さないように、リポジトリ構造を保ってコピー
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/lambdas/thumbnail-generator ./lambdas/thumbnail-generator
+COPY --from=build /app/common ./common
+COPY --from=build /app/lambdas/content-processor ./lambdas/content-processor
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/package-lock.json ./package-lock.json
 
-# ここはあなたの Lambda ハンドラに合わせて変更してください
-# 例: lambda/dist/handler.js が exports.handler を持つならこれ
-CMD ["lambdas/thumbnail-generator/dist/handler.handler"]
+CMD ["lambdas/content-processor/dist/handler.handler"]
