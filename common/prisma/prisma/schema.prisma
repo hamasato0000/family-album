@@ -46,6 +46,15 @@ enum UploadStatus {
   @@map("upload_status")
 }
 
+enum ContentStatus {
+  pending
+  processing
+  completed
+  failed
+
+  @@map("content_status")
+}
+
 // --- Models ---
 // モデル名を PascalCase、テーブル名を @@map で指定
 // フィールド名を camelCase、カラム名を @map で指定
@@ -149,20 +158,21 @@ model EUpload {
 }
 
 model RContent {
-  contentId     String      @id @map("content_id") @db.Char(12)
-  albumId       String      @map("album_id") @db.Char(12)
-  uploadId      String      @map("upload_id") @db.Char(12)
-  contentType   ContentType @map("content_type")
-  contentHash   String      @unique @map("content_hash") @db.Char(64)
-  rawPath       String      @unique @map("raw_path")
-  thumbnailPath String?     @unique @map("thumbnail_path")
-  fileSize      BigInt?     @map("file_size")
+  contentId     String        @id @map("content_id") @db.Char(12)
+  albumId       String        @map("album_id") @db.Char(12)
+  uploadId      String        @map("upload_id") @db.Char(12)
+  contentType   ContentType   @map("content_type")
+  contentHash   String        @unique @map("content_hash") @db.Char(64)
+  rawPath       String        @unique @map("raw_path")
+  thumbnailPath String?       @unique @map("thumbnail_path")
+  fileSize      BigInt?       @map("file_size")
   caption       String?
-  errorMessage  String?     @map("error_message")
-  takenAt       DateTime?   @map("taken_at") @db.Timestamptz
-  processedAt   DateTime?   @map("processed_at") @db.Timestamptz
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt     DateTime    @default(now()) @map("updated_at") @db.Timestamptz
+  errorMessage  String?       @map("error_message")
+  takenAt       DateTime?     @map("taken_at") @db.Timestamptz
+  processedAt   DateTime?     @map("processed_at") @db.Timestamptz
+  status        ContentStatus @default(pending)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @default(now()) @map("updated_at") @db.Timestamptz
 
   album    RAlbum     @relation(fields: [albumId], references: [albumId])
   upload   EUpload    @relation(fields: [uploadId], references: [uploadId])
