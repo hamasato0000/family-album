@@ -51,28 +51,12 @@ services:
       - api_node_modules:/app/api/node_modules
     depends_on:
       - localstack
-
-  content-processor:
-    build:
-      context: .
-      dockerfile: ./lambdas/content-processor/Dockerfile.dev
-    ports:
-      - "9001:8080"
-    env_file:
-      - .env
-    environment:
-      - AWS_REGION=${AWS_REGION:-ap-northeast-1}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - DATABASE_URL=postgresql://fa_user:password@db:5432/fa_db
-    depends_on:
-      - localstack
-      - db
-  # event-processor:
+  # content-processor:
   #   build:
   #     context: .
-  #     dockerfile: ./services/event-processor/Dockerfile.dev
+  #     dockerfile: ./lambdas/content-processor/Dockerfile.dev
+  #   ports:
+  #     - "9001:8080"
   #   env_file:
   #     - .env
   #   environment:
@@ -80,12 +64,10 @@ services:
   #     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
   #     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
   #     - AWS_ENDPOINT_URL=http://localstack:4566
-  #     - SQS_QUEUE_NAME=${SQS_QUEUE_NAME:-s3-event-queue}
-  #   volumes:
-  #     - ./services/event-processor:/app
-  #     - /app/node_modules
+  #     - DATABASE_URL=postgresql://fa_user:password@db:5432/fa_db
   #   depends_on:
   #     - localstack
+  #     - db
 
 volumes:
   family_album_db_data:
