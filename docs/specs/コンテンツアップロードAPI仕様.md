@@ -8,9 +8,9 @@
 
 ### 1. アップロード開始API
 
-アップロードを作成し、upload_idを返却する。
+指定したアルバムに対してアップロードセッションを作成し、upload_idを返却する。
 
-**エンドポイント:** `POST /uploads`
+**エンドポイント:** `POST /albums/{album_id}/uploads`
 
 **リクエスト:**
 ```json
@@ -18,6 +18,9 @@
   "content_count": 3
 }
 ```
+
+**パスパラメータ:**
+- `album_id`: アルバムID
 
 **レスポンス（201 Created）:**
 ```json
@@ -31,12 +34,15 @@
 
 **処理内容:**
 1. リクエストバリデーション（content_count > 0）
-2. uploadsレコード作成（status=pending）
-3. レスポンス返却
+2. ユーザー認証・アルバムへのアクセス権確認
+3. uploadsレコード作成（status=pending）
+4. レスポンス返却
 
 **エラー:**
 - 400: content_countが不正
 - 401: 認証エラー
+- 403: アルバムへのアクセス権がない
+- 404: ユーザーまたはアルバムが存在しない
 
 ---
 
@@ -114,11 +120,10 @@
   "status": "completed",
   "content_count": 3,
   "created_at": "2025-02-03T10:00:00Z",
-  "completed_at": "2025-02-03T10:01:30Z",
+  "completed_at": null,
   "contents": [
     {
       "content_id": "IRFa-VaY2b3k",
-      "original_filename": "photo1.jpg",
       "status": "completed",
       "thumbnail_url": "https://cdn.example.com/thumbnails/V1StGXR8_Z5j/IRFa-VaY2b3k.jpg",
       "raw_url": "https://cdn.example.com/raws/V1StGXR8_Z5j/IRFa-VaY2b3k.jpg",
@@ -128,19 +133,27 @@
     },
     {
       "content_id": "Hk9xPqW3mN7v",
-      "original_filename": "photo2.png",
       "status": "failed",
       "error_message": "Unsupported image format"
+    },
+    {
+      "content_id": "Jk8yQrX2oM6w",
+      "status": "pending"
     }
   ],
   "summary": {
-    "pending": 0,
+    "pending": 1,
     "processing": 0,
-    "completed": 2,
+    "completed": 1,
     "failed": 1
   }
 }
 ```
+
+**注記:**
+- `completed_at` は現在実装されていないため `null` が返却されます。
+- `contents` の `status` は `completed` (成功), `failed` (検証失敗), `pending` (未処理/処理中) のいずれかです。
+- `processing` ステータスは現在検知できないため `summary.processing` は常に 0 となります。
 
 **エラー:**
 - 401: 認証エラー
@@ -162,7 +175,7 @@
 ```
 1. S3イベントからオブジェクトキーを取得
 2. キーからupload_idとcontent_idを抽出
-3. contentsレコードをstatus=processingに更新
+3. contentsレコードをstatus=processingに更新 (※現状未実装)
 4. 画像検証
    - フォーマット検証（JPEG/PNG）
    - 破損チェック
