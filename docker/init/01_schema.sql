@@ -23,6 +23,16 @@ CREATE TYPE upload_status AS ENUM (
   'failed',
   'expired'
 );
+-- pending: 処理待ち
+-- processing: 処理中
+-- completed: 処理完了
+-- failed: 処理失敗
+CREATE TYPE content_status AS ENUM (
+  'pending',
+  'processing',
+  'completed',
+  'failed'
+);
 -- ------------------------------------------------------------
 -- 性別
 -- ------------------------------------------------------------
