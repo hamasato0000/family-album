@@ -4,7 +4,42 @@ export default {
     "./app/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // Warm/Family Friendly Primary Palette (Coral/Orange/Soft Red)
+        primary: {
+          50: '#FFF5F2',
+          100: '#FFEBE5',
+          200: '#FFD6CC',
+          300: '#FFB8A6',
+          400: '#FF9680',
+          500: '#FF7E67',
+          600: '#E66A54',
+          700: '#CC5542',
+          800: '#B34333',
+          900: '#8C3428',
+          950: '#4A1D16',
+          DEFAULT: '#FF7E67',
+        },
+        // Map gray to warm gray (Stone)
+        gray: {
+          50: '#fafaf9',
+          100: '#f5f5f4',
+          200: '#e7e5e4',
+          300: '#d6d3d1',
+          400: '#a8a29e',
+          500: '#78716c',
+          600: '#57534e',
+          700: '#44403c',
+          800: '#292524',
+          900: '#1c1917',
+          950: '#0c0a09',
+        },
+      },
+      fontFamily: {
+        // Rounder/Friendlier fonts if we had them, standard sans is fine for now
+      }
+    },
   },
   plugins: [],
 }

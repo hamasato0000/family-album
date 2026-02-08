@@ -15,7 +15,7 @@ export function ContentItem({ contentId, contentType, uri, caption }: ContentIte
     return (
         <div
             key={contentId}
-            className="group relative aspect-square bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 hover:border-indigo-200"
+            className="group relative aspect-square bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 hover:border-primary-200"
         >
             {uri ? (
                 <img
@@ -24,11 +24,11 @@ export function ContentItem({ contentId, contentType, uri, caption }: ContentIte
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
             ) : (
-                <div className="w-full h-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-primary-100 via-white to-primary-50 flex items-center justify-center">
                     {contentType === "video" ? (
-                        <VideoIcon className="w-12 h-12 text-indigo-400" />
+                        <VideoIcon className="w-12 h-12 text-primary-400" />
                     ) : (
-                        <PhotoIcon className="w-12 h-12 text-indigo-400" />
+                        <PhotoIcon className="w-12 h-12 text-primary-400" />
                     )}
                 </div>
             )}

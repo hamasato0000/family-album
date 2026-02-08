@@ -53,7 +53,7 @@ function AlbumsIndexContent() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12">
                 <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
                         Family Album
                     </h1>
                     <p className="mt-2 text-gray-600">
@@ -79,7 +79,7 @@ function AlbumsIndexContent() {
             ) : albums.length === 0 ? (
                 /* Empty State */
                 <EmptyState
-                    icon={<PhotoIcon className="w-12 h-12 text-indigo-400" />}
+                    icon={<PhotoIcon className="w-12 h-12 text-primary-400" />}
                     title="アルバムがありません"
                     description="新しいアルバムを作成して、思い出を残しましょう"
                     actionLabel="最初のアルバムを作成"

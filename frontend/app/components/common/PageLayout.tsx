@@ -23,7 +23,7 @@ const maxWidthClasses = {
 
 export function PageLayout({ children, maxWidth = "6xl", centered = false, showHeader = true }: PageLayoutProps) {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="min-h-screen bg-primary-50">
             {showHeader && <Header />}
             <div
                 className={`${centered ? "flex items-center justify-center px-4 min-h-[calc(100vh-57px)]" : ""}`}

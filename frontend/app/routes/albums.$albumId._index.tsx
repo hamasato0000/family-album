@@ -116,7 +116,7 @@ function AlbumDetailContent() {
             {/* Contents Grid */}
             {contents.length === 0 ? (
                 <EmptyState
-                    icon={<PhotoIcon className="w-12 h-12 text-indigo-400" />}
+                    icon={<PhotoIcon className="w-12 h-12 text-primary-400" />}
                     title="まだ写真がありません"
                     description="上の「写真を追加」ボタンから、思い出を残しましょう"
                 />

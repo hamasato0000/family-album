@@ -30,7 +30,7 @@ export function ErrorMessage({
 
     if (fullScreen) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+            <div className="min-h-screen bg-primary-50 flex items-center justify-center">
                 {content}
             </div>
         );
