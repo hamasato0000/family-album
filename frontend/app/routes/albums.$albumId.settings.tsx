@@ -83,7 +83,7 @@ function AlbumSettingsContent() {
             {/* Album Info */}
             <div className="bg-white rounded-xl shadow-md p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <InfoIcon className="w-5 h-5 mr-2 text-indigo-600" />
+                    <InfoIcon className="w-5 h-5 mr-2 text-primary-600" />
                     アルバム情報
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -101,7 +101,7 @@ function AlbumSettingsContent() {
             {/* Members Section */}
             <div className="bg-white rounded-xl shadow-md p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <UsersIcon className="w-5 h-5 mr-2 text-indigo-600" />
+                    <UsersIcon className="w-5 h-5 mr-2 text-primary-600" />
                     メンバー ({album.members.length}人)
                 </h2>
                 <div className="space-y-3">

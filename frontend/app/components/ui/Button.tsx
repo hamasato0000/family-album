@@ -23,11 +23,11 @@ interface ButtonProps {
 
 const variantClasses = {
     primary:
-        "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
+        "bg-gradient-to-r from-primary-400 to-primary-600 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
     secondary:
         "bg-white border border-gray-300 text-gray-700 shadow hover:bg-gray-50",
     outline:
-        "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
+        "bg-primary-50 text-primary-700 hover:bg-primary-100",
 };
 
 const sizeClasses = {

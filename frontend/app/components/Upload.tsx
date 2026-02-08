@@ -94,8 +94,8 @@ export function Upload({ albumId, onUploadComplete, onCancel }: UploadProps) {
                         file:mr-4 file:py-2 file:px-4
                         file:rounded-full file:border-0
                         file:text-sm file:font-semibold
-                        file:bg-indigo-50 file:text-indigo-700
-                        hover:file:bg-indigo-100"
+                        file:bg-primary-50 file:text-primary-700
+                        hover:file:bg-primary-100"
                 />
                 {files.length > 0 && (
                     <p className="mt-2 text-sm text-gray-600">{files.length}件のファイルが選択されています</p>
@@ -105,7 +105,7 @@ export function Upload({ albumId, onUploadComplete, onCancel }: UploadProps) {
             {uploading && (
                 <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
                     <div
-                        className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                        className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
                         style={{ width: `${progress}%` }}
                     ></div>
                 </div>
@@ -124,7 +124,7 @@ export function Upload({ albumId, onUploadComplete, onCancel }: UploadProps) {
                     className={`flex-1 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out
                         ${!files.length || uploading
                             ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg"
+                            : "bg-primary-600 hover:bg-primary-700 text-white shadow-lg"
                         }`}
                 >
                     {uploading ? `アップロード中... ${Math.round(progress)}%` : "アップロード"}

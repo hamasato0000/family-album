@@ -74,8 +74,8 @@ function NewAlbumContent() {
 
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-                        <PlusIcon className="w-10 h-10 text-indigo-600" strokeWidth={1.5} />
+                    <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center">
+                        <PlusIcon className="w-10 h-10 text-primary-600" strokeWidth={1.5} />
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">
                         新規アルバム作成
@@ -106,7 +106,7 @@ function NewAlbumContent() {
                             onChange={(e) => setNickname(e.target.value)}
                             placeholder="例: パパ、ママ、おじいちゃん"
                             maxLength={50}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                             disabled={creating}
                         />
                         <p className="mt-1 text-sm text-gray-500">
@@ -123,7 +123,7 @@ function NewAlbumContent() {
                             id="childRelation"
                             value={childRelation}
                             onChange={(e) => setChildRelation(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors bg-white"
                             disabled={creating}
                         >
                             <option value="">選択してください</option>

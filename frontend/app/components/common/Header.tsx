@@ -26,7 +26,7 @@ export function Header({ title }: HeaderProps) {
             <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
                 {/* Left: Logo/Title */}
                 <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
                         <span className="text-white font-bold text-sm">FA</span>
                     </div>
                     {title && (
@@ -42,10 +42,10 @@ export function Header({ title }: HeaderProps) {
                             <img
                                 src={user.picture}
                                 alt={user.name || "ユーザー"}
-                                className="w-8 h-8 rounded-full ring-2 ring-indigo-100"
+                                className="w-8 h-8 rounded-full ring-2 ring-primary-100"
                             />
                         ) : (
-                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-500 rounded-full flex items-center justify-center">
                                 <UserIcon className="w-4 h-4 text-white" />
                             </div>
                         )}
@@ -57,7 +57,7 @@ export function Header({ title }: HeaderProps) {
                     {/* Logout button */}
                     <button
                         onClick={handleLogout}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
                     >
                         <LogoutIcon className="w-4 h-4 mr-1.5" />
                         <span className="hidden sm:inline">ログアウト</span>
