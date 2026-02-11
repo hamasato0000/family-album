@@ -247,6 +247,7 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
                         thumbnailPath,
                         fileSize: BigInt(imageBuffer.length),
                         takenAt,
+                        ...(takenAt ? { sortKey: takenAt } : {}),
                         processedAt: new Date(),
                         updatedAt: new Date(),
                     },

@@ -18,9 +18,9 @@ export function useApi() {
         return api.getAlbum(albumId, { accessToken });
     }, [getAccessTokenSilently]);
 
-    const getAlbumContents = useCallback(async (albumId: string) => {
+    const getAlbumContents = useCallback(async (albumId: string, params?: { limit?: number; cursor?: string }) => {
         const accessToken = await getAccessTokenSilently();
-        return api.getAlbumContents(albumId, { accessToken });
+        return api.getAlbumContents(albumId, params, { accessToken });
     }, [getAccessTokenSilently]);
 
     const createAlbum = useCallback(async (params: api.CreateAlbumParams) => {

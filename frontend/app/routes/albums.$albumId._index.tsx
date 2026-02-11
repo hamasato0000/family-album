@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useParams } from "@remix-run/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { type AlbumDetail, type AlbumContent } from "~/services/api";
 import { useApi } from "~/hooks/useApi";
 import { ProtectedRoute } from "~/components/auth/ProtectedRoute";
@@ -31,30 +31,43 @@ export default function AlbumDetailPage() {
     );
 }
 
+/** 1回のリクエストで取得するコンテンツ数 */
+const PAGE_SIZE = 20;
+
 function AlbumDetailContent() {
     const { albumId } = useParams<{ albumId: string }>();
     const [album, setAlbum] = useState<AlbumDetail | null>(null);
     const [contents, setContents] = useState<AlbumContent[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
     const api = useApi();
 
+    // Intersection Observer 用の ref
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+    // 初回データ取得
     useEffect(() => {
         if (albumId) {
-            fetchAlbumData(albumId);
+            fetchInitialData(albumId);
         }
     }, [albumId]);
 
-    const fetchAlbumData = async (id: string) => {
+    const fetchInitialData = async (id: string) => {
         try {
             setLoading(true);
             const [albumData, contentsData] = await Promise.all([
                 api.getAlbum(id),
-                api.getAlbumContents(id),
+                api.getAlbumContents(id, { limit: PAGE_SIZE }),
             ]);
             setAlbum(albumData);
             setContents(contentsData.contents);
+            setNextCursor(contentsData.nextCursor);
+            setHasMore(contentsData.hasMore);
         } catch (err) {
             setError("アルバムの取得に失敗しました");
             console.error(err);
@@ -63,11 +76,59 @@ function AlbumDetailContent() {
         }
     };
 
+    // 次ページのデータ取得
+    const fetchMoreContents = useCallback(async () => {
+        if (!albumId || !nextCursor || loadingMore) return;
+
+        try {
+            setLoadingMore(true);
+            const contentsData = await api.getAlbumContents(albumId, {
+                limit: PAGE_SIZE,
+                cursor: nextCursor,
+            });
+            setContents((prev) => [...prev, ...contentsData.contents]);
+            setNextCursor(contentsData.nextCursor);
+            setHasMore(contentsData.hasMore);
+        } catch (err) {
+            console.error("追加コンテンツの取得に失敗しました:", err);
+        } finally {
+            setLoadingMore(false);
+        }
+    }, [albumId, nextCursor, loadingMore, api]);
+
+    // Intersection Observer の設定
+    useEffect(() => {
+        // 前の Observer をクリーンアップ
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+        }
+
+        // hasMore が false なら Observer を設定しない
+        if (!hasMore) return;
+
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting && hasMore && !loadingMore) {
+                    fetchMoreContents();
+                }
+            },
+            { rootMargin: "200px" }
+        );
+
+        if (sentinelRef.current) {
+            observerRef.current.observe(sentinelRef.current);
+        }
+
+        return () => {
+            observerRef.current?.disconnect();
+        };
+    }, [hasMore, loadingMore, fetchMoreContents]);
+
     const handleUploadComplete = () => {
         setIsUploadModalOpen(false);
-        // コンテンツを再読み込み
+        // コンテンツを再読み込み（最初から）
         if (albumId) {
-            fetchAlbumData(albumId);
+            fetchInitialData(albumId);
         }
     };
 
@@ -114,24 +175,47 @@ function AlbumDetailContent() {
             </div>
 
             {/* Contents Grid */}
-            {contents.length === 0 ? (
+            {contents.length === 0 && !loading ? (
                 <EmptyState
                     icon={<PhotoIcon className="w-12 h-12 text-primary-400" />}
                     title="まだ写真がありません"
                     description="上の「写真を追加」ボタンから、思い出を残しましょう"
                 />
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {contents.map((content) => (
-                        <ContentItem
-                            key={content.contentId}
-                            contentId={content.contentId}
-                            contentType={content.contentType as "image" | "video"}
-                            uri={content.thumbnailUrl ?? content.rawUrl ?? undefined}
-                            caption={content.caption ?? undefined}
-                        />
-                    ))}
-                </div>
+                <>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {contents.map((content) => (
+                            <ContentItem
+                                key={content.contentId}
+                                contentId={content.contentId}
+                                contentType={content.contentType as "image" | "video"}
+                                uri={content.thumbnailUrl ?? content.rawUrl ?? undefined}
+                                caption={content.caption ?? undefined}
+                                status={content.status}
+                            />
+                        ))}
+                    </div>
+
+                    {/* 追加読み込み中のインジケーター */}
+                    {loadingMore && (
+                        <div className="flex justify-center py-8">
+                            <div className="flex items-center gap-3 text-gray-500">
+                                <div className="w-5 h-5 border-2 border-primary-300 border-t-transparent rounded-full animate-spin" />
+                                <span className="text-sm">読み込み中...</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Intersection Observer のセンチネル要素 */}
+                    {hasMore && <div ref={sentinelRef} className="h-1" />}
+
+                    {/* すべて読み込み完了 */}
+                    {!hasMore && contents.length > 0 && (
+                        <div className="flex justify-center py-6">
+                            <span className="text-sm text-gray-400">すべてのコンテンツを表示しました</span>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Upload Modal */}

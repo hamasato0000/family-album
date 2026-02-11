@@ -504,9 +504,57 @@ app.get("/albums/:albumId", authMiddleware, albumAccessMiddleware, async (c) => 
 app.get("/albums/:albumId/contents", authMiddleware, albumAccessMiddleware, async (c) => {
     const albumId = c.req.param("albumId");
 
+    // クエリパラメータの取得
+    const limitParam = c.req.query("limit");
+    const cursorParam = c.req.query("cursor");
+
+    const limit = Math.min(Math.max(Number(limitParam) || 20, 1), 100);
+
+    // カーソルのデコード
+    let cursorSortKey: Date | undefined;
+    let cursorContentId: string | undefined;
+
+    if (cursorParam) {
+        try {
+            const decoded = Buffer.from(cursorParam, "base64").toString("utf-8");
+            const [sortKeyStr, contentId] = decoded.split("::");
+            if (!sortKeyStr || !contentId) {
+                return c.json({ message: "Invalid cursor format" }, 400);
+            }
+            cursorSortKey = new Date(sortKeyStr);
+            if (isNaN(cursorSortKey.getTime())) {
+                return c.json({ message: "Invalid cursor: invalid date" }, 400);
+            }
+            cursorContentId = contentId;
+        } catch {
+            return c.json({ message: "Invalid cursor" }, 400);
+        }
+    }
+
+    // Prismaクエリの構築
+    // sort_key DESC, content_id DESC でソートし、カーソル以降のデータを取得
+    const whereCondition: Record<string, unknown> = { albumId };
+
+    if (cursorSortKey && cursorContentId) {
+        // (sort_key, content_id) < (cursorSortKey, cursorContentId) を表現
+        // sort_key < cursorSortKey OR (sort_key = cursorSortKey AND content_id < cursorContentId)
+        whereCondition.OR = [
+            { sortKey: { lt: cursorSortKey } },
+            {
+                sortKey: cursorSortKey,
+                contentId: { lt: cursorContentId },
+            },
+        ];
+    }
+
+    // limit + 1 で取得し、次ページの有無を判定
     const contents = await prisma.rContent.findMany({
-        where: { albumId },
-        orderBy: { createdAt: "desc" },
+        where: whereCondition as Prisma.RContentWhereInput,
+        orderBy: [
+            { sortKey: "desc" },
+            { contentId: "desc" },
+        ],
+        take: limit + 1,
         select: {
             contentId: true,
             contentType: true,
@@ -515,12 +563,28 @@ app.get("/albums/:albumId/contents", authMiddleware, albumAccessMiddleware, asyn
             caption: true,
             takenAt: true,
             createdAt: true,
+            status: true,
+            sortKey: true,
         },
     });
 
+    // 次ページの有無を判定
+    const hasMore = contents.length > limit;
+    const pagedContents = hasMore ? contents.slice(0, limit) : contents;
+
+    // 次のカーソルを生成
+    let nextCursor: string | null = null;
+    if (hasMore && pagedContents.length > 0) {
+        const lastContent = pagedContents[pagedContents.length - 1];
+        if (lastContent) {
+            const cursorPayload = `${lastContent.sortKey.toISOString()}::${lastContent.contentId}`;
+            nextCursor = Buffer.from(cursorPayload).toString("base64");
+        }
+    }
+
     return c.json({
         albumId: albumId,
-        contents: contents.map((content) => ({
+        contents: pagedContents.map((content) => ({
             contentId: content.contentId,
             contentType: content.contentType,
             rawUrl: content.rawPath ? `${process.env.CDN_BASE_URL || ""}/${content.rawPath}` : null,
@@ -528,7 +592,10 @@ app.get("/albums/:albumId/contents", authMiddleware, albumAccessMiddleware, asyn
             caption: content.caption,
             takenAt: content.takenAt?.toISOString() ?? null,
             createdAt: content.createdAt.toISOString(),
+            status: content.status,
         })),
+        nextCursor,
+        hasMore,
     });
 });
 
