@@ -7,6 +7,7 @@ import {
 import sharp from "sharp";
 import { fileTypeFromBuffer } from "file-type";
 import { prisma } from "@family-album/prisma";
+import ExifParser from "exif-parser";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -64,9 +65,6 @@ async function extractExifData(buffer: Buffer): Promise<{
 
         if (metadata.exif) {
             try {
-                // exif-parserを使用してEXIFデータを解析（型定義がないためanyを使用）
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const ExifParser = (await import("exif-parser")) as any;
                 const parser = ExifParser.create(buffer);
                 const result = parser.parse();
 
@@ -103,18 +101,22 @@ async function extractExifData(buffer: Buffer): Promise<{
 }
 
 /**
- * コンテンツ処理Lambda ハンドラー
+ * コンテンツ処理
+ * Lambda ハンドラー
  */
 export const handler = async (event: S3Event, context: Context): Promise<void> => {
     console.log("Received S3 Event:", JSON.stringify(event, null, 2));
 
+    // S3 Event の各レコードを処理
     for (const record of event.Records) {
+
+        // イベント発生元の S3 バケット名とオブジェクトキーを取得
         const bucketName = record.s3.bucket.name;
         const objectKey = decodeURIComponent(record.s3.object.key.replace(/\+/g, " "));
 
         console.log(`Processing file: ${objectKey}`);
 
-        // S3キーからIDを抽出
+        // S3 キーから uploadId と contentId を抽出
         const ids = parseS3Key(objectKey);
         if (!ids) {
             console.error(`Invalid S3 key format: ${objectKey}`);
@@ -124,8 +126,8 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
         const { uploadId, contentId } = ids;
 
         try {
-            // 1. コンテンツレコードをstatus=processingに更新（楽観的ロック）
-            // status=pendingのものだけを処理対象とし、重複処理を防止
+            // 1. コンテンツレコードを status=processing に更新（楽観的ロック）
+            // status=pending のものだけを処理対象とし、重複処理を防止
             const updateResult = await prisma.rContent.updateMany({
                 where: {
                     contentId,
@@ -145,7 +147,7 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
 
             console.log(`Content ${contentId} status updated to processing`);
 
-            // 2. S3から画像データを取得
+            // 2. S3 から画像データを取得
             const getObjectCommand = new GetObjectCommand({
                 Bucket: bucketName,
                 Key: objectKey,
@@ -153,6 +155,7 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
 
             const getObjectResponse = await s3.send(getObjectCommand);
 
+            // S3 に期待するオブジェクトが存在しない場合はエラー
             if (!getObjectResponse.Body) {
                 throw new Error("No object body found");
             }
@@ -210,7 +213,7 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
                 continue;
             }
 
-            // 7. EXIF情報を取得
+            // 7. EXIF 情報を取得
             const { takenAt, exifData, width, height } = await extractExifData(imageBuffer);
 
             // 8. サムネイル生成
@@ -224,7 +227,7 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
                 .toFormat("jpeg", { quality: 80 })
                 .toBuffer();
 
-            // 9. サムネイルをS3に保存
+            // 9. サムネイルを S3 に保存
             const thumbnailPath = `thumbnails/${uploadId}/${contentId}.jpg`;
             await s3.send(
                 new PutObjectCommand({
@@ -237,9 +240,9 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
 
             console.log(`Successfully created thumbnail: ${thumbnailPath}`);
 
-            // 10. r_contentとr_photoレコードを更新
+            // 10. コンテンツを更新
             await prisma.$transaction(async (tx) => {
-                // コンテンツの更新（status=completedに変更）
+                // コンテンツの更新（status=completed に変更）
                 await tx.rContent.update({
                     where: { contentId },
                     data: {
@@ -324,7 +327,7 @@ async function updateContentAsFailed(
 
 /**
  * アップロードの完了判定
- * 全コンテンツが処理完了（completed + failed）の場合、uploadsをcompletedに更新
+ * 全コンテンツが処理完了（completed + failed）の場合、uploads を completed に更新
  */
 async function checkUploadCompletion(uploadId: string): Promise<void> {
     try {
@@ -349,6 +352,7 @@ async function checkUploadCompletion(uploadId: string): Promise<void> {
 
         console.log(`Upload ${uploadId}: ${processedCount}/${expectedCount} processed`);
 
+        // TODO: 期待数より処理済み数が大きくなることはないはず
         if (processedCount >= expectedCount) {
             await prisma.eUpload.update({
                 where: { uploadId },
