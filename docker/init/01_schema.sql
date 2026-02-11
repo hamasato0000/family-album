@@ -123,9 +123,11 @@ CREATE TABLE IF NOT EXISTS r_content (
   error_message TEXT,
   taken_at TIMESTAMPTZ,
   processed_at TIMESTAMPTZ,
+  sort_key TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_content_album_sort ON r_content(album_id, sort_key DESC, content_id DESC);
 -- ------------------------------------------------------------
 -- 写真（コンテンツ と 1:1）
 -- ------------------------------------------------------------

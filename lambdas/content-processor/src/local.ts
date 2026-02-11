@@ -13,22 +13,28 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// ローカル実行用のエンドポイント（Docker内ではなくローカルマシンから接続）
+const LOCAL_ENDPOINT = "http://localhost:4566";
+
+// SQSクライアントの初期化
 const sqsClient = new SQSClient({
     region: process.env.AWS_REGION || "ap-northeast-1",
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID || "test",
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "test",
     },
-    ...(process.env.AWS_ENDPOINT_URL && {
-        endpoint: process.env.AWS_ENDPOINT_URL,
-    }),
+    endpoint: LOCAL_ENDPOINT,
 });
 
-const QUEUE_URL = process.env.SQS_QUEUE_URL || "http://localstack:4566/000000000000/content-processor-queue";
+const QUEUE_NAME = process.env.SQS_QUEUE_NAME || "s3-event-queue";
+const QUEUE_URL = process.env.SQS_QUEUE_URL || `http://localhost:4566/000000000000/${QUEUE_NAME}`;
 const POLL_INTERVAL = 5000; // 5秒
 
+/**
+ * SQSからメッセージをポーリングし、Lambdaハンドラーを呼び出す
+ */
 async function pollMessages(): Promise<void> {
-    console.log("Polling for messages from SQS...");
+    console.log(`Polling for messages from SQS: ${QUEUE_URL}`);
 
     while (true) {
         try {
@@ -38,8 +44,10 @@ async function pollMessages(): Promise<void> {
                 WaitTimeSeconds: 20, // ロングポーリング
             });
 
+            // SQSからメッセージ受信
             const response = await sqsClient.send(receiveCommand);
 
+            // メッセージがあれば処理
             if (response.Messages && response.Messages.length > 0) {
                 for (const message of response.Messages) {
                     console.log("Received message:", message.MessageId);
@@ -47,6 +55,21 @@ async function pollMessages(): Promise<void> {
                     try {
                         // メッセージボディをS3Eventにパース
                         const body = JSON.parse(message.Body || "{}");
+
+                        // S3テストイベントはスキップ（イベント通知設定時に送信される）
+                        if (body.Event === "s3:TestEvent") {
+                            console.log("Skipping S3 test event");
+                            // テストイベントは削除して次へ
+                            if (message.ReceiptHandle) {
+                                await sqsClient.send(
+                                    new DeleteMessageCommand({
+                                        QueueUrl: QUEUE_URL,
+                                        ReceiptHandle: message.ReceiptHandle,
+                                    })
+                                );
+                            }
+                            continue;
+                        }
 
                         // S3イベント通知はRecordsフィールドに含まれる
                         let s3Event: S3Event;

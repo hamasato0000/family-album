@@ -171,6 +171,7 @@ model RContent {
   takenAt       DateTime?     @map("taken_at") @db.Timestamptz
   processedAt   DateTime?     @map("processed_at") @db.Timestamptz
   status        ContentStatus @default(pending)
+  sortKey       DateTime      @default(now()) @map("sort_key") @db.Timestamptz
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime      @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -180,6 +181,7 @@ model RContent {
   video    RVideo?
   comments EComment[]
 
+  @@index([albumId, sortKey, contentId], map: "idx_content_album_sort")
   @@map("r_content")
 }
 

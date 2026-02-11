@@ -124,15 +124,26 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
         const { uploadId, contentId } = ids;
 
         try {
-            // 1. コンテンツレコードを取得し、status=processingに更新
-            const content = await prisma.rContent.findUnique({
-                where: { contentId },
+            // 1. コンテンツレコードをstatus=processingに更新（楽観的ロック）
+            // status=pendingのものだけを処理対象とし、重複処理を防止
+            const updateResult = await prisma.rContent.updateMany({
+                where: {
+                    contentId,
+                    status: 'pending'
+                },
+                data: {
+                    status: 'processing',
+                    updatedAt: new Date(),
+                },
             });
 
-            if (!content) {
-                console.error(`Content not found: ${contentId}`);
+            if (updateResult.count === 0) {
+                // 既に処理中、完了済み、または存在しない
+                console.log(`Content ${contentId} is already being processed, completed, or not found. Skipping.`);
                 continue;
             }
+
+            console.log(`Content ${contentId} status updated to processing`);
 
             // 2. S3から画像データを取得
             const getObjectCommand = new GetObjectCommand({
@@ -228,13 +239,15 @@ export const handler = async (event: S3Event, context: Context): Promise<void> =
 
             // 10. r_contentとr_photoレコードを更新
             await prisma.$transaction(async (tx) => {
-                // コンテンツの更新
+                // コンテンツの更新（status=completedに変更）
                 await tx.rContent.update({
                     where: { contentId },
                     data: {
+                        status: 'completed',
                         thumbnailPath,
                         fileSize: BigInt(imageBuffer.length),
                         takenAt,
+                        ...(takenAt ? { sortKey: takenAt } : {}),
                         processedAt: new Date(),
                         updatedAt: new Date(),
                     },
@@ -294,6 +307,7 @@ async function updateContentAsFailed(
         await prisma.rContent.update({
             where: { contentId },
             data: {
+                status: 'failed',
                 errorMessage,
                 processedAt: new Date(),
                 updatedAt: new Date(),
