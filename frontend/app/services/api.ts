@@ -309,3 +309,70 @@ export async function getAlbumContents(
 
     return response.json();
 }
+
+// ============================================================
+// コンテンツ詳細 API
+// ============================================================
+
+export interface ContentDetail {
+    contentId: string;
+    contentType: "image" | "video";
+    rawUrl: string | null;
+    thumbnailUrl: string | null;
+    caption: string | null;
+    takenAt: string | null;
+    createdAt: string;
+    status: "pending" | "processing" | "completed" | "failed";
+    fileSize: number | null;
+    width: number | null;
+    height: number | null;
+    durationSeconds: number | null;
+}
+
+/**
+ * コンテンツ詳細を取得する
+ * GET /albums/:albumId/contents/:contentId
+ */
+export async function getContent(
+    albumId: string,
+    contentId: string,
+    options?: ApiOptions
+): Promise<ContentDetail> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/contents/${contentId}`, { headers });
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch content");
+    }
+
+    return response.json();
+}
+
+/**
+ * コンテンツを削除する
+ * DELETE /albums/:albumId/contents/:contentId
+ */
+export async function deleteContent(
+    albumId: string,
+    contentId: string,
+    options?: ApiOptions
+): Promise<void> {
+    const headers: HeadersInit = {};
+    if (options?.accessToken) {
+        headers["Authorization"] = `Bearer ${options.accessToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/albums/${albumId}/contents/${contentId}`, {
+        method: "DELETE",
+        headers,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to delete content");
+    }
+}

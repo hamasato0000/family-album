@@ -599,6 +599,84 @@ app.get("/albums/:albumId/contents", authMiddleware, albumAccessMiddleware, asyn
     });
 });
 
+/*
+ * コンテンツ詳細を取得する
+ * GET /albums/:albumId/contents/:contentId
+ * NOTE: 認証必須、アルバムメンバーのみアクセス可能
+ */
+app.get("/albums/:albumId/contents/:contentId", authMiddleware, albumAccessMiddleware, async (c) => {
+    const albumId = c.req.param("albumId");
+    const contentId = c.req.param("contentId");
+
+    const content = await prisma.rContent.findFirst({
+        where: {
+            contentId,
+            albumId,
+        },
+        include: {
+            photo: {
+                select: {
+                    width: true,
+                    height: true,
+                },
+            },
+            video: {
+                select: {
+                    durationSeconds: true,
+                },
+            },
+        },
+    });
+
+    if (!content) {
+        return c.json({ message: "Content not found" }, 404);
+    }
+
+    return c.json({
+        contentId: content.contentId,
+        contentType: content.contentType,
+        rawUrl: content.rawPath ? `${process.env.CDN_BASE_URL || ""}/${content.rawPath}` : null,
+        thumbnailUrl: content.thumbnailPath ? `${process.env.CDN_BASE_URL || ""}/${content.thumbnailPath}` : null,
+        caption: content.caption,
+        takenAt: content.takenAt?.toISOString() ?? null,
+        createdAt: content.createdAt.toISOString(),
+        status: content.status,
+        fileSize: content.fileSize ? Number(content.fileSize) : null,
+        width: content.photo ? Number(content.photo.width) : null,
+        height: content.photo ? Number(content.photo.height) : null,
+        durationSeconds: content.video ? Number(content.video.durationSeconds) : null,
+    });
+});
+
+/*
+ * コンテンツを削除する
+ * DELETE /albums/:albumId/contents/:contentId
+ * NOTE: 認証必須、アルバムメンバーのみアクセス可能
+ */
+app.delete("/albums/:albumId/contents/:contentId", authMiddleware, albumAccessMiddleware, async (c) => {
+    const albumId = c.req.param("albumId");
+    const contentId = c.req.param("contentId");
+
+    const content = await prisma.rContent.findFirst({
+        where: {
+            contentId,
+            albumId,
+        },
+    });
+
+    if (!content) {
+        return c.json({ message: "Content not found" }, 404);
+    }
+
+    await prisma.rContent.delete({
+        where: {
+            contentId,
+        },
+    });
+
+    return new Response(null, { status: 204 });
+});
+
 const port = Number(process.env.PORT ?? 3000);
 console.log(`Listening on http://localhost:${port}`);
 serve({ fetch: app.fetch, port });

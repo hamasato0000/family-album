@@ -44,6 +44,16 @@ export function useApi() {
         return api.getUploadStatus(uploadId, { accessToken });
     }, [getAccessTokenSilently]);
 
+    const getContent = useCallback(async (albumId: string, contentId: string) => {
+        const accessToken = await getAccessTokenSilently();
+        return api.getContent(albumId, contentId, { accessToken });
+    }, [getAccessTokenSilently]);
+
+    const deleteContent = useCallback(async (albumId: string, contentId: string) => {
+        const accessToken = await getAccessTokenSilently();
+        return api.deleteContent(albumId, contentId, { accessToken });
+    }, [getAccessTokenSilently]);
+
     return {
         getAlbums,
         getAlbum,
@@ -52,5 +62,7 @@ export function useApi() {
         createUpload,
         createUploadContents,
         getUploadStatus,
+        getContent,
+        deleteContent,
     };
 }

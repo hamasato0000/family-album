@@ -187,6 +187,7 @@ function AlbumDetailContent() {
                         {contents.map((content) => (
                             <ContentItem
                                 key={content.contentId}
+                                albumId={albumId!}
                                 contentId={content.contentId}
                                 contentType={content.contentType as "image" | "video"}
                                 uri={content.thumbnailUrl ?? content.rawUrl ?? undefined}

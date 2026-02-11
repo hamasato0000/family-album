@@ -1,6 +1,9 @@
+import { Link } from "@remix-run/react";
 import { PhotoIcon, VideoIcon } from "~/components/icons/Icons";
 
 interface ContentItemProps {
+    /** アルバムID */
+    albumId: string;
     /** コンテンツID */
     contentId: string;
     /** コンテンツタイプ */
@@ -38,13 +41,16 @@ function ContentSkeleton({ contentType, status }: { contentType: "image" | "vide
     );
 }
 
-export function ContentItem({ contentId, contentType, uri, caption, status }: ContentItemProps) {
+export function ContentItem({ albumId, contentId, contentType, uri, caption, status }: ContentItemProps) {
     const isReady = status === "completed" && uri;
+    const isClickable = status === "completed";
 
-    return (
+    const content = (
         <div
-            key={contentId}
-            className="group relative aspect-square bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer border border-gray-100 hover:border-primary-200"
+            className={`group relative aspect-square bg-white rounded-xl shadow-md transition-all duration-300 overflow-hidden border border-gray-100 ${isClickable
+                    ? "hover:shadow-xl cursor-pointer hover:border-primary-200"
+                    : "cursor-default"
+                }`}
         >
             {isReady ? (
                 <img
@@ -64,4 +70,14 @@ export function ContentItem({ contentId, contentType, uri, caption, status }: Co
             )}
         </div>
     );
+
+    if (isClickable) {
+        return (
+            <Link to={`/albums/${albumId}/contents/${contentId}`} prefetch="intent">
+                {content}
+            </Link>
+        );
+    }
+
+    return content;
 }
