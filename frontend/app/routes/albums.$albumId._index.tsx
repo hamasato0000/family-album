@@ -15,6 +15,7 @@ import { ContentItem } from "~/components/album/ContentItem";
 import { Upload } from "~/components/Upload";
 import { PhotoIcon, UploadIcon, SettingsIcon } from "~/components/icons/Icons";
 import { formatDate } from "~/utils/date";
+import { useContentPolling } from "~/hooks/useContentPolling";
 
 export const meta: MetaFunction = () => {
     return [
@@ -23,6 +24,9 @@ export const meta: MetaFunction = () => {
     ];
 };
 
+/**
+ * アルバムコンテンツ一覧ページ
+ */
 export default function AlbumDetailPage() {
     return (
         <ProtectedRoute>
@@ -95,6 +99,23 @@ function AlbumDetailContent() {
             setLoadingMore(false);
         }
     }, [albumId, nextCursor, loadingMore, api]);
+
+    // ポーリングによるコンテンツ更新ハンドラー
+    const handlePollingUpdate = useCallback(
+        (updatedContents: AlbumContent[], updatedNextCursor: string | null, updatedHasMore: boolean) => {
+            setContents(updatedContents);
+            setNextCursor(updatedNextCursor);
+            setHasMore(updatedHasMore);
+        },
+        []
+    );
+
+    // コンテンツのポーリング（処理中のコンテンツがある場合のみ動作）
+    useContentPolling({
+        albumId,
+        contents,
+        onUpdate: handlePollingUpdate,
+    });
 
     // Intersection Observer の設定
     useEffect(() => {
